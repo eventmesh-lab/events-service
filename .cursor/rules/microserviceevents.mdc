@@ -1,0 +1,250 @@
+---
+alwaysApply: true
+---
+# Reglas del Proyecto: Events Service
+
+Este archivo contiene las reglas y convenciones del proyecto `events-service` basadas en la documentación técnica del proyecto.
+
+## 1. Arquitectura y Principios
+
+### Arquitectura Base
+
+- **Arquitectura Hexagonal (Ports & Adapters)**: Separación clara entre el núcleo de la aplicación y las tecnologías externas.
+- **Domain-Driven Design (DDD)**: El dominio es el núcleo de la aplicación y contiene toda la lógica de negocio.
+- **Bounded Context**: Gestión de Eventos
+
+### Principios de Diseño
+
+- **SOLID**: Aplicar todos los principios SOLID en el diseño de clases y módulos.
+- **DRY (Don't Repeat Yourself)**: Evitar duplicación de código.
+- **YAGNI (You Aren't Gonna Need It)**: No implementar funcionalidades que no se necesitan actualmente.
+- **Claridad > Cleverness**: Priorizar código claro y legible sobre soluciones "inteligentes" pero complejas.
+- **Simplicidad > Perfección**: Una solución simple que funciona es mejor que una perfecta que no existe.
+
+## 2. Estructura de Capas
+
+El proyecto está organizado en cuatro capas principales, cada una con responsabilidades específicas:
+
+### 2.1 Domain Layer (`events-service.Domain`)
+
+- **Responsabilidad**: Contiene la lógica y reglas de negocio más importantes.
+- **Restricción**: NO debe depender de ninguna tecnología externa.
+- **Componentes**:
+  - **Agregados**: `Evento` es el aggregate root, responsable de mantener sus invariantes.
+  - **Entidades**: `Seccion` y otras entidades del dominio.
+  - **Value Objects**: `FechaEvento`, `DuracionEvento`, `EstadoEvento`, `PrecioEntrada`.
+  - **Eventos de Dominio**: `EventoCreado`, `EventoPublicado`, etc.
+  - **Interfaces de Repositorio (Puertos)**: Define contratos para persistencia (ej. `IEventoRepository`).
+- **Reglas**:
+  - El dominio mantiene las invariantes del agregado `Evento`.
+  - Los agregados validan reglas de negocio y generan eventos de dominio.
+  - No se permiten referencias a librerías de infraestructura.
+
+### 2.2 Application Layer (`events-service.Application`)
+
+- **Responsabilidad**: Orquesta los casos de uso, NO contiene lógica de negocio.
+- **Patrón**: CQRS con MediatR para separar comandos (escrituras) de consultas (lecturas).
+- **Componentes**:
+  - **Comandos**: `CrearEventoCommand`, `PublicarEventoCommand`, etc. Encapsulan solicitudes para modificar el estado.
+  - **Handlers**: `CrearEventoCommandHandler` orquesta la ejecución: recupera agregado, invoca métodos de negocio, persiste cambios.
+  - **Validaciones**: Usa `FluentValidation` para validar datos de entrada antes de llegar al dominio.
+- **Reglas**:
+  - Los handlers NO contienen lógica de negocio, solo orquestación.
+  - Toda validación de entrada se hace con FluentValidation.
+  - Los handlers invocan métodos del agregado, no manipulan directamente su estado.
+
+### 2.3 Infrastructure Layer (`events-service.Infrastructure`)
+
+- **Responsabilidad**: Implementa adaptadores para tecnologías externas.
+- **Componentes**:
+  - **Persistencia**: Implementa repositorios usando Entity Framework Core con PostgreSQL.
+  - **Mensajería**: Publica eventos de dominio en RabbitMQ para comunicación asíncrona.
+  - **Servicios Externos**: Clientes para interactuar con otras APIs si es necesario.
+- **Reglas**:
+  - Implementa las interfaces definidas en el dominio.
+  - Publica eventos de dominio en el exchange `eventos.domain.events`.
+  - Usa Entity Framework Core para mapeo ORM.
+
+### 2.4 API Layer (`events-service.Api`)
+
+- **Responsabilidad**: Punto de entrada de la aplicación, expone funcionalidad vía API REST.
+- **Tecnología**: .NET 8 Minimal APIs.
+- **Reglas**:
+  - Recibe peticiones HTTP y las traduce a comandos/consultas de MediatR.
+  - Gestiona configuración, registro de dependencias (IoC) y pipeline de middleware.
+  - Expone Swagger en desarrollo.
+  - Endpoints siguen el patrón RESTful.
+
+## 3. Flujo de Ejecución de Comandos
+
+El flujo estándar para ejecutar un comando (ej: `CrearEvento`):
+
+1. **API Layer**: Endpoint `POST /api/eventos` recibe petición HTTP.
+2. **Mapeo**: El cuerpo se mapea a `CrearEventoCommand`.
+3. **Application Layer (MediatR)**: El comando se envía a su handler (`CrearEventoCommandHandler`).
+4. **Validación**: El handler valida el comando con FluentValidation.
+5. **Domain Layer**:
+   - El handler invoca método factoría o constructor del agregado `Evento`.
+   - El agregado valida reglas de negocio (invariantes).
+   - Si es correcto, genera evento de dominio `EventoCreado`.
+6. **Infrastructure Layer**:
+   - El handler usa `IEventoRepository` para persistir en base de datos.
+   - Publica el evento de dominio `EventoCreado` en RabbitMQ.
+7. **API Layer**: El endpoint devuelve respuesta `201 Created`.
+
+## 4. Tecnologías y Herramientas
+
+### Stack Tecnológico
+
+- **.NET 8.0**: Framework y SDK requerido.
+- **PostgreSQL**: Base de datos relacional.
+- **RabbitMQ**: Message broker para eventos de dominio.
+- **Entity Framework Core**: ORM para persistencia.
+- **MediatR**: Implementación de CQRS.
+- **FluentValidation**: Validación de comandos.
+- **Serilog**: Logging estructurado.
+- **OpenTelemetry**: Traces y métricas.
+- **Docker & Docker Compose**: Orquestación de dependencias.
+
+### Configuración
+
+- Variables de entorno:
+  - `ConnectionStrings__EventsDb`: Cadena de conexión PostgreSQL.
+  - `MessageBroker__Host`: Host de RabbitMQ.
+  - `MessageBroker__Exchange`: Exchange de dominio (`eventos.domain.events`).
+  - `OpenTelemetry__Endpoint`: Colector OTLP para traces y métricas.
+
+## 5. Estructura de Carpetas
+
+``` bash
+Services/events-service/
+├── src/
+│   ├── events-service.Api/          # Capa de API (Minimal APIs)
+│   ├── events-service.Application/   # Capa de aplicación (CQRS, MediatR)
+│   ├── events-service.Domain/        # Capa de dominio (Agregados, VOs, Eventos)
+│   └── events-service.Infrastructure/ # Capa de infraestructura (EF Core, RabbitMQ)
+├── tests/
+│   ├── events-service.Application.Tests/        # Pruebas unitarias de aplicación
+│   ├── events-service.Domain.Tests/             # Pruebas unitarias de dominio
+│   └── events-service.Infrastructure.IntegrationTests/ # Pruebas de integración
+├── docs/                            # Documentación técnica
+├── docker-compose.yml               # Orquestación de dependencias
+└── Dockerfile                        # Imagen Docker del servicio
+```
+
+## 6. Convenciones de Código
+
+### Nomenclatura
+
+- **Agregados**: Nombres en singular (ej: `Evento`).
+- **Comandos**: Sufijo `Command` (ej: `CrearEventoCommand`).
+- **Handlers**: Sufijo `Handler` (ej: `CrearEventoCommandHandler`).
+- **Repositorios**: Prefijo `I` para interfaces (ej: `IEventoRepository`).
+- **Eventos de Dominio**: Nombres en pasado (ej: `EventoCreado`, `EventoPublicado`).
+- **Value Objects**: Nombres descriptivos (ej: `FechaEvento`, `DuracionEvento`).
+
+### Documentación
+
+- Incluir docstring o comentario inline explicando el propósito de cada función, clase o bloque complejo.
+- Documentar invariantes del dominio en pruebas unitarias.
+- Mantener documentación actualizada con cambios en el código.
+
+### Validación
+
+- Validar datos de entrada con FluentValidation en la capa de aplicación.
+- Validar invariantes de negocio en el dominio.
+- Validar casos edge y manejar errores apropiadamente.
+
+## 7. Pruebas (TDD)
+
+### Enfoque
+
+- Si se trabaja con TDD y hay tests creados, NO modificar los tests existentes.
+- Los tests deben validar el comportamiento esperado, no la implementación.
+
+### Tipos de Pruebas
+
+- **Pruebas Unitarias (Domain)**: Validar invariantes y lógica de negocio del agregado `Evento`.
+- **Pruebas Unitarias (Application)**: Validar orquestación de casos de uso.
+- **Pruebas de Integración (Infrastructure)**: Validar integración con PostgreSQL y RabbitMQ.
+
+### Ejecución
+
+```bash
+# Pruebas unitarias
+dotnet test tests/events-service.Domain.Tests/
+dotnet test tests/events-service.Application.Tests/
+
+# Pruebas de integración
+dotnet test tests/events-service.Infrastructure.IntegrationTests/
+```
+
+## 8. Lenguaje Ubicuo
+
+### Términos del Dominio
+
+- **Evento**: Agregado raíz que representa un evento en el sistema.
+- **Seccion**: Entidad que representa una sección de un evento.
+- **EstadoEvento**: Value Object que representa el estado del evento (borrador, publicado, finalizado, etc.).
+- **FechaEvento**: Value Object que representa la fecha del evento.
+- **DuracionEvento**: Value Object que representa la duración del evento.
+- **PrecioEntrada**: Value Object que representa el precio de entrada.
+
+### Bounded Context
+
+- **Contexto**: Gestión de Eventos
+- **Responsabilidad**: Gestión del ciclo de vida completo de eventos, desde creación en borrador hasta finalización.
+
+## 9. Buenas Prácticas
+
+### Desarrollo
+
+- Mantener el dominio libre de dependencias de infraestructura.
+- Documentar invariantes en pruebas unitarias.
+- Exponer contratos (API, eventos) con OpenAPI/AsyncAPI y versionar cambios.
+- Emitir logs estructurados con Serilog y propagar contexto de trazas (OpenTelemetry).
+- Automatizar pipeline de CI/CD con restauración, build, pruebas y análisis de calidad.
+
+### Seguridad
+
+- Validar todas las entradas.
+- Manejar errores de forma segura sin exponer información sensible.
+- Usar principios de seguridad por defecto.
+
+### Rendimiento
+
+- Considerar rendimiento en el diseño, pero no optimizar prematuramente.
+- Usar técnicas apropiadas de consulta en Entity Framework Core.
+- Considerar caché cuando sea apropiado.
+
+## 10. Preguntas Obligatorias Antes de Escribir Código
+
+Antes de escribir cualquier código, responder:
+
+1. **Contexto completo**:
+   - ¿Qué problema específico estoy resolviendo?
+   - ¿Cuáles son los requisitos funcionales y no funcionales?
+   - ¿Qué tecnologías/frameworks estoy usando?
+   - ¿Hay restricciones de rendimiento, seguridad o compatibilidad?
+
+2. **Integración**:
+   - ¿Este código se integra con algo existente?
+   - ¿Qué casos edge debo considerar?
+   - ¿Cómo voy a testear esto?
+   - ¿Hay patrones establecidos en el proyecto que deba seguir?
+
+3. **Arquitectura**:
+   - ¿En qué capa debe ir este código?
+   - ¿Sigue los principios de arquitectura hexagonal?
+   - ¿Respeto las dependencias entre capas?
+
+## 11. Documentación de Referencia
+
+- **Documentación Central**: [Ficha del Servicio](https://eventmesh-lab.github.io/org-docs/services/events-service/)
+- **Guía Técnica**: [Guía Técnica Global](https://eventmesh-lab.github.io/org-docs/guia-tecnica/)
+- **Documentación Local**: Ver carpeta `docs/` para documentación específica del servicio.
+
+---
+
+**Nota**: Estas reglas están basadas en la documentación técnica del proyecto y deben seguirse estrictamente para mantener la consistencia y calidad del código.
+

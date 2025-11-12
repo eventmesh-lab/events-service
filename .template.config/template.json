@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Tu Organización",
+  "classifications": [ "Web", "Microservice", "Hexagonal", "CleanArchitecture" ],
+  "identity": "org.template.events-service.hexagonal",
+  "name": "Microservice template (Hexagonal / Ports & Adapters)",
+  "shortName": "microservice-hex",
+  "sourceName": "Microservice",
+  "preferNameDirectory": true,
+  "symbols": {
+    "framework": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "net8.0",
+      "replaces": "NETFRAMEWORK"
+    }
+  },
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sources": [
+    {
+      "source": "./",
+      "target": "./",
+      "exclude": [ ".template.config/**/*", "**/*.user", "**/bin/**", "**/obj/**" ]
+    }
+  ],
+  "postActions": []
+}
