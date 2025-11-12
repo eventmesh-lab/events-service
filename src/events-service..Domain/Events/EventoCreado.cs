@@ -1,11 +1,12 @@
 using System;
+using MediatR;
 
 namespace events_service.Domain.Events
 {
     /// <summary>
     /// Evento de dominio que se genera cuando se crea un nuevo evento.
     /// </summary>
-    public class EventoCreado : IDomainEvent
+    public class EventoCreado : IDomainEvent, INotification
     {
         /// <summary>
         /// Identificador único del evento creado.

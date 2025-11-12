@@ -9,11 +9,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\events-service.Application\events-service.Application.csproj" />
-    <ProjectReference Include="..\events-service.Domain\events-service.Domain.csproj" />
+    <ProjectReference Include="..\events-service..Domain\events-service.Domain.csproj" />
     <ProjectReference Include="..\events-service.Infrastructure\events-service.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="MediatR" Version="12.2.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
 
