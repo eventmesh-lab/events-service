@@ -1,74 +1,62 @@
-# Plantilla Microservice Hexagonal (dotnet)
+# events-service
 
-Plantilla para generar un microservicio con arquitectura Hexagonal (Ports & Adapters) en .NET.
+Este repositorio contiene un microservicio .NET organizado con la intención de seguir la arquitectura hexagonal (Ports & Adapters). El README original era una plantilla; este archivo describe lo que realmente hay en este repo y, en particular, documenta el contenido de la carpeta `docs/`.
 
-Estructura creada:
+Estructura principal (resumen):
 
-- src/
-  - Microservice.Domain/
-  - Microservice.Application/
-  - Microservice.Infrastructure/
-  - Microservice.Api/
-- tests/
-  - Microservice.Domain.Tests/
-  - Microservice.Application.Tests/
-  - Microservice.Infrastructure.IntegrationTests/
-- .template.config/template.json
+- `events-service.sln` — solución .NET que agrupa los proyectos.
+- `Dockerfile`, `docker-compose.yml` — artefactos para contenedores/local orchestration.
+- `src/` — código fuente:
+  - `events-service.Domain/` — entidades, value objects y lógica de dominio.
+  - `events-service.Application/` — casos de uso, servicios de aplicación y comandos.
+  - `events-service.Infrastructure/` — repositorios, adaptadores y dependencias externas.
+  - `events-service.Api/` — API HTTP (entrada) y Program/Startup.
+- `tests/` — pruebas automatizadas:
+  - `events-service.Domain.Tests/` — pruebas unitarias de dominio.
+  - `events-service.Application.Tests/` — pruebas de los casos de uso/servicios.
+  - `events-service.Infrastructure.IntegrationTests/` — pruebas de integración (repositorios, adapters).
+- `docs/` — documentación del proyecto (ver sección dedicada abajo).
 
-Cómo usar este repositorio como template
+Docs (carpeta `docs/`) — contenido clave
 
-Hay dos formas comunes de usar este repo como plantilla:
+La carpeta `docs/` contiene la documentación más importante del repositorio. Archivos relevantes:
 
-1) Usar el repositorio como "GitHub Template" (recomendado si publicas en GitHub):
-   - En GitHub configura el repositorio como "Template repository" (Settings → Template repository) o usa el botón "Use this template" para crear un nuevo repo basado en esta plantilla.
-   - Clona el repo resultante localmente y sigue la sección "Instalación local" abajo para instalar el template en tu máquina.
+- `ARCHITECTURE.md` — descripción de la arquitectura (capas, dependencias entre proyectos, decisiones arquitectónicas y diagramas o referencias cuando aplican).
+- `DEVELOPMENT_GUIDE.md` — guía para desarrolladores: cómo configurar el entorno local, convención de ramas, formato de commits, flujo de trabajo y cómo añadir nuevas features o adaptadores.
+- `TDD_TEST_PLAN.md` — plan y criterios para pruebas basadas en TDD; qué pruebas existen y la estrategia de pruebas (unitarias vs integración).
+- `UBIQUITOUS_LANGUAGE.md` — glosario y términos del dominio (vocabulario compartido entre negocio y equipo técnico).
 
-2) Instalación local directa (desarrollo / pruebas):
-   - Clona este repositorio y luego instala la plantilla desde la carpeta del repo:
+Recomendación: revise `docs/` antes de desarrollar; ahí está la intención del diseño y las reglas del repositorio.
 
-```bash
-git clone https://github.com/<owner>/microservice-hexagonal-template-.git
-cd microservice-hexagonal-template-
-# Instalar la plantilla localmente (SDK moderno):
-dotnet new install .
-# Si ya la tienes instalada y quieres forzar la actualización:
-dotnet new install . --force
-```
+Cómo compilar, ejecutar y probar (comandos básicos)
 
-Ver las plantillas instaladas:
+Los comandos siguientes asumen que tienes el SDK de .NET instalado (recomendado: .NET 8 o la versión que figura en los `.csproj`). Ejecuta estos comandos desde la raíz del repositorio usando tu shell (el proyecto está en Windows, pero los comandos son los estándar de dotnet):
 
 ```bash
-dotnet new list
-```
-
-Generar un nuevo microservicio desde la plantilla
-
-```bash
-# Crea el microservicio (reemplaza "Orders" por el nombre que desees):
-dotnet new microservice-hex -n Orders -o ./Orders --framework net8.0
-
-cd Orders
+# Restaurar paquetes
 dotnet restore
-dotnet build
+
+# Compilar la solución
+dotnet build ./events-service.sln
+
+# Ejecutar la API localmente (carpeta con Program.cs)
+dotnet run --project ./src/events-service.Api/events-service.Api.csproj
+
+# Ejecutar todos los tests
+dotnet test ./tests/events-service.Domain.Tests/events-service.Domain.Tests.csproj
+dotnet test ./tests/events-service.Application.Tests/events-service.Application.Tests.csproj
+# Tests de integración (si correspondiera)
+dotnet test ./tests/events-service.Infrastructure.IntegrationTests/events-service.Infrastructure.IntegrationTests.csproj
 ```
 
-Notas importantes
-- El template usa `Microservice` como `sourceName`; al generar el proyecto ese token se sustituye por el nombre que pases con `-n`.
-- Los .csproj contienen el token `NETFRAMEWORK` que se sustituye por el valor del parámetro `--framework` (por defecto `net8.0`).
-- Si la plantilla está instalada globalmente y haces cambios locales, reinstálala con `--force`.
+Otras notas útiles
 
-Desinstalar la plantilla (opcional)
+- La solución `events-service.sln` agrupa los proyectos; puedes abrirla en Visual Studio o VS Code (con extensiones C#).
+- Para ejecutar en contenedor localmente, consulta `docker-compose.yml` y `Dockerfile`.
+- El código sigue la separación de responsabilidades: `Domain` no debe depender de `Infrastructure`.
+- Si vas a modificar diseño o contratos (por ejemplo, modelos públicos de la API), actualiza también la documentación en `docs/` y el `UBIQUITOUS_LANGUAGE.md`.
 
-```bash
-# Si la instalaste desde una carpeta local, puedes desinstalar usando la misma ruta o el identificador usado al instalar.
-dotnet new uninstall /path/to/microservice-hexagonal-template-
-# (o) desinstalar por paquete si lo subiste a un feed: dotnet new uninstall <package-or-feed>
-```
+Contribuciones y seguimiento
 
-Problemas comunes
-- Si ves errores al compilar la API relacionados con Swagger, asegúrate de restaurar paquetes; la plantilla incluye `Swashbuckle.AspNetCore` por defecto.
-- Si el comando `dotnet new microservice-hex` no aparece tras instalar, ejecuta `dotnet new install . --force` y verifica con `dotnet new list`.
-
-¿Qué sigue?
-- Puedes solicitar que añada un `.sln` a la plantilla, workflows de CI (GitHub Actions) que verifiquen la generación y build, o parámetros adicionales para incluir EF Core / mensajería a la carta.
-
+- Si encuentras errores en la documentación, mejora `docs/*.md` y crea un PR claro que describa el cambio.
+- Si vas a añadir una feature o cambiar la arquitectura, abre un issue primero y referencia los documentos en `docs/`.

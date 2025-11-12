@@ -14,8 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Microservice.Infrastructure\Microservice.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\src\Microservice.Domain\Microservice.Domain.csproj" />
+    <ProjectReference Include="..\..\src\events-service.Infrastructure\events-service.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\events-service.Domain\events-service.Domain.csproj" />
   </ItemGroup>
 
 </Project>

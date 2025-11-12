@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microservice.Application.UseCases;
-using Microservice.Domain.Ports;
-using Microservice.Infrastructure.Repositories;
+using events-service.Application.UseCases;
+using events-service.Domain.Ports;
+using events-service.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 

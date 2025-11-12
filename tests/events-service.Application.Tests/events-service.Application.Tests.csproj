@@ -11,10 +11,12 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.3" />
+    <PackageReference Include="Moq" Version="4.18.4" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Microservice.Domain\Microservice.Domain.csproj" />
+    <ProjectReference Include="..\..\src\events-service.Application\events-service.Application.csproj" />
+    <ProjectReference Include="..\..\src\events-service.Domain\events-service.Domain.csproj" />
   </ItemGroup>
 
 </Project>

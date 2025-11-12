@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>NETFRAMEWORK</TargetFramework>
     <Nullable>enable</Nullable>
-    <AssemblyName>Microservice.Domain</AssemblyName>
+    <AssemblyName>events-service.Domain</AssemblyName>
   </PropertyGroup>
 
 </Project>

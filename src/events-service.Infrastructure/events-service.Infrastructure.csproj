@@ -3,11 +3,11 @@
   <PropertyGroup>
     <TargetFramework>NETFRAMEWORK</TargetFramework>
     <Nullable>enable</Nullable>
-    <AssemblyName>Microservice.Application</AssemblyName>
+    <AssemblyName>events-service.Infrastructure</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Microservice.Domain\Microservice.Domain.csproj" />
+    <ProjectReference Include="..\events-service.Domain\events-service.Domain.csproj" />
   </ItemGroup>
 
 </Project>
