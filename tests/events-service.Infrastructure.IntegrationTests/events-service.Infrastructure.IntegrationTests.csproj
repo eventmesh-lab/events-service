@@ -11,11 +11,12 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\events-service.Infrastructure\events-service.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\src\events-service.Domain\events-service.Domain.csproj" />
+    <ProjectReference Include="..\..\src\events-service..Domain\events-service.Domain.csproj" />
   </ItemGroup>
 
 </Project>
