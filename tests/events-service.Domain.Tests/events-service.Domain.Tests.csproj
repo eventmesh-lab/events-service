@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>NETFRAMEWORK</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\events-service.Domain\events-service.Domain.csproj" />
+    <ProjectReference Include="..\..\src\events-service..Domain\events-service.Domain.csproj" />
   </ItemGroup>
 
 </Project>
