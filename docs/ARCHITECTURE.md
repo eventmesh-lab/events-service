@@ -54,3 +54,38 @@ Es el punto de entrada a la aplicación. Expone la funcionalidad a través de un
     - El handler utiliza el `IEventoRepository` para persistir el nuevo evento en la base de datos.
     - Publica el evento de dominio `EventoCreado` en RabbitMQ.
 7. **API Layer:** El endpoint devuelve una respuesta `201 Created`.
+
+## 3. Modelo relacional (PostgreSQL)
+
+El esquema en PostgreSQL se limita al agregado `Evento` y su entidad `Seccion`. La siguiente vista ER resume las tablas, columnas principales y cardinalidades tal como las define la capa de infraestructura (`EventsDbContext` y las configuraciones Fluent API).
+
+```mermaid
+erDiagram
+    EVENTOS {
+        uuid id PK
+        varchar nombre
+        text descripcion
+        uuid organizador_id
+        uuid venue_id
+        varchar categoria
+        numeric tarifa_publicacion
+        timestamptz fecha_inicio
+        int duracion_horas
+        int duracion_minutos
+        varchar estado
+        uuid transaccion_pago_id
+        int version
+        timestamptz fecha_creacion
+        timestamptz fecha_publicacion
+    }
+
+    SECCIONES {
+        uuid id PK
+        uuid evento_id FK
+        varchar nombre
+        decimal precio_monto
+        int capacidad
+    }
+
+    EVENTOS ||--o{ SECCIONES : "contiene"
+```
