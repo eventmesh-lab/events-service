@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="277e7004-4b74-40d8-88c0-9e8c57675c3f" name="Jesus@NUCBOXG3 2025-11-22 21:26:05" runUser="NUCBOXG3\Jesus" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2025-11-22T21:26:05.4103480-04:00" queuing="2025-11-22T21:26:05.4103492-04:00" start="2025-11-22T21:24:55.0198882-04:00" finish="2025-11-22T21:26:10.6294854-04:00" />
+  <TestSettings name="default" id="d7e006ef-0345-4bbf-86dd-7bc35e24af10">
+    <Deployment runDeploymentRoot="Jesus_NUCBOXG3_2025-11-22_21_26_05" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="1d364628-448f-4606-af43-fc6b2b88b0e4" testId="8bb832c5-f7b4-b631-55d7-9d5a72a6b96a" testName="events_service.Infrastructure.IntegrationTests.InMemoryRepoTests.AddAndGet_WithInMemoryDatabase_PersistsEvento" computerName="NUCBOXG3" duration="00:00:23.8208553" startTime="2025-11-22T21:26:04.7396643-04:00" endTime="2025-11-22T21:26:04.7397043-04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1d364628-448f-4606-af43-fc6b2b88b0e4" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="events_service.Infrastructure.IntegrationTests.InMemoryRepoTests.AddAndGet_WithInMemoryDatabase_PersistsEvento" storage="d:\proyecto_ds_2025-02\eventmesh-lab\services\events-service\tests\events-service.infrastructure.integrationtests\bin\debug\net8.0\events-service.infrastructure.integrationtests.dll" id="8bb832c5-f7b4-b631-55d7-9d5a72a6b96a">
+      <Execution id="1d364628-448f-4606-af43-fc6b2b88b0e4" />
+      <TestMethod codeBase="D:\Proyecto_DS_2025-02\eventmesh-lab\Services\events-service\tests\events-service.Infrastructure.IntegrationTests\bin\Debug\net8.0\events-service.Infrastructure.IntegrationTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="events_service.Infrastructure.IntegrationTests.InMemoryRepoTests" name="AddAndGet_WithInMemoryDatabase_PersistsEvento" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="8bb832c5-f7b4-b631-55d7-9d5a72a6b96a" executionId="1d364628-448f-4606-af43-fc6b2b88b0e4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.85] xUnit.net VSTest Adapter v2.4.3+1b45f5407b (64-bit .NET 8.0.20)&#xD;
+[xUnit.net 00:00:19.65]   Discovering: events-service.Infrastructure.IntegrationTests&#xD;
+[xUnit.net 00:00:20.58]   Discovered:  events-service.Infrastructure.IntegrationTests&#xD;
+[xUnit.net 00:00:20.59]   Starting:    events-service.Infrastructure.IntegrationTests&#xD;
+[xUnit.net 00:00:47.23]   Finished:    events-service.Infrastructure.IntegrationTests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>
