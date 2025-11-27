@@ -38,7 +38,7 @@ namespace events_service.Domain.Tests.ValueObjects
         public void Constructor_ConEstadoNulo_LanzaExcepcion()
         {
             // Arrange & Act & Assert
-            Assert.Throws<ArgumentNullException>(() => new EstadoEvento(null));
+            Assert.Throws<ArgumentNullException>(() => new EstadoEvento(null!));
         }
 
         [Fact]

@@ -37,7 +37,7 @@ namespace events_service.Domain.Tests.Entities
             var precio = new PrecioEntrada(150.00m);
 
             // Act & Assert
-            Assert.Throws<ArgumentNullException>(() => new Seccion(null, capacidad, precio));
+            Assert.Throws<ArgumentNullException>(() => new Seccion(null!, capacidad, precio));
         }
 
         [Fact]

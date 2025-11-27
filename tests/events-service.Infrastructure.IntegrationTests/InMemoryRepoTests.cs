@@ -9,15 +9,21 @@ using events_service.Infrastructure.Repositories;
 
 namespace events_service.Infrastructure.IntegrationTests
 {
+    /// <summary>
+    /// Colección de tests para aislar la base de datos InMemory y permitir paralelización segura.
+    /// </summary>
+    [Collection("InMemoryDatabase")]
     public class InMemoryRepoTests
     {
         [Fact]
         public async Task AddAndGet_WithInMemoryDatabase_PersistsEvento()
         {
-            // Arrange - Configuración optimizada con opciones cacheadas
+            // Arrange - Configuración optimizada: nombre único por test para evitar conflictos
+            var databaseName = Guid.NewGuid().ToString();
             var options = new DbContextOptionsBuilder<EventsDbContext>()
-                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .UseInMemoryDatabase(databaseName: databaseName)
                 .EnableSensitiveDataLogging(false) // Desactivar logging innecesario
+                .EnableServiceProviderCaching(false) // Evitar cache de servicios para mejor aislamiento
                 .Options;
 
             await using var context = new EventsDbContext(options);
@@ -37,7 +43,9 @@ namespace events_service.Infrastructure.IntegrationTests
 
         private static Evento CrearEventoDePrueba()
         {
-            var fecha = new FechaEvento(DateTime.UtcNow.AddDays(10));
+            // Usar DateTime.UtcNow una sola vez para mejor rendimiento
+            var fechaBase = DateTime.UtcNow;
+            var fecha = new FechaEvento(fechaBase.AddDays(10));
             var duracion = new DuracionEvento(2, 0);
             var secciones = new[]
             {
@@ -54,6 +62,32 @@ namespace events_service.Infrastructure.IntegrationTests
                 "Música",
                 100m,
                 secciones);
+        }
+    }
+
+    /// <summary>
+    /// Collection definition para agrupar tests que usan InMemory DB.
+    /// Esto permite paralelización segura entre diferentes collections.
+    /// </summary>
+    [CollectionDefinition("InMemoryDatabase")]
+    public class InMemoryDatabaseCollection : ICollectionFixture<InMemoryDatabaseFixture>
+    {
+        // Esta clase solo se usa para definir la collection, no necesita código
+    }
+
+    /// <summary>
+    /// Fixture compartido para optimizar la creación de configuración de DbContext.
+    /// </summary>
+    public class InMemoryDatabaseFixture : IDisposable
+    {
+        public InMemoryDatabaseFixture()
+        {
+            // Inicialización compartida si es necesaria
+        }
+
+        public void Dispose()
+        {
+            // Limpieza si es necesaria
         }
     }
 }
