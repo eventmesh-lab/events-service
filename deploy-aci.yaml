@@ -1,0 +1,84 @@
+apiVersion: '2021-07-01'
+location: eastus
+name: events-container-group
+properties:
+  containers:
+  - name: postgres
+    properties:
+      image: acreventproyectods.azurecr.io/postgres:16
+      resources:
+        requests:
+          cpu: 0.5
+          memoryInGb: 1.0
+      environmentVariables:
+      - name: POSTGRES_DB
+        value: events
+      - name: POSTGRES_USER
+        value: events
+      - name: POSTGRES_PASSWORD
+        secureValue: events123
+      ports:
+      - port: 5432
+        protocol: TCP
+
+  - name: rabbitmq
+    properties:
+      image: acreventproyectods.azurecr.io/rabbitmq:3.13-alpine
+      resources:
+        requests:
+          cpu: 0.5
+          memoryInGb: 1.0
+      environmentVariables:
+      - name: RABBITMQ_DEFAULT_USER
+        value: guest
+      - name: RABBITMQ_DEFAULT_PASS
+        secureValue: guest123
+      ports:
+      - port: 5672
+        protocol: TCP
+      - port: 15672
+        protocol: TCP
+
+  - name: events-api
+    properties:
+      image: acreventproyectods.azurecr.io/events-api:latest
+      resources:
+        requests:
+          cpu: 1.0
+          memoryInGb: 1.0
+      environmentVariables:
+      - name: ASPNETCORE_ENVIRONMENT
+        value: Development
+      - name: ConnectionStrings__EventsDb
+        value: Host=localhost;Port=5432;Database=events;Username=events;Password=events123
+      - name: MessageBroker__Host
+        value: localhost
+      - name: MessageBroker__Exchange
+        value: eventos.domain.events
+      - name: MessageBroker__Username
+        value: guest
+      - name: MessageBroker__Password
+        value: guest123
+      ports:
+      - port: 8080
+        protocol: TCP
+
+  osType: Linux
+  restartPolicy: Always
+  imageRegistryCredentials:
+  - server: acreventproyectods.azurecr.io
+    username: acreventproyectods
+    password:
+
+  ipAddress:
+    type: Public
+    dnsNameLabel: events-service-api
+    ports:
+    - port: 8080
+      protocol: TCP
+    - port: 5432
+      protocol: TCP
+    - port: 5672
+      protocol: TCP
+    - port: 15672
+      protocol: TCP

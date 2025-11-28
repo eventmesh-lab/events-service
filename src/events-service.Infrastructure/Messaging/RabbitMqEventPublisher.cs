@@ -15,10 +15,12 @@ namespace events_service.Infrastructure.Messaging
     /// </summary>
     public class RabbitMqEventPublisher : IDomainEventPublisher, IDisposable
     {
-        private readonly IConnection _connection;
-        private readonly IModel _channel;
+        private readonly IConnectionFactory _connectionFactory;
         private readonly string _exchangeName;
         private readonly JsonSerializerOptions _jsonOptions;
+        private IConnection _connection;
+        private IModel _channel;
+        private readonly object _lockObject = new object();
 
         /// <summary>
         /// Inicializa una nueva instancia del publicador.
@@ -31,22 +33,60 @@ namespace events_service.Infrastructure.Messaging
                 throw new ArgumentNullException(nameof(connectionFactory));
 
             _exchangeName = exchangeName ?? throw new ArgumentNullException(nameof(exchangeName));
-
-            _connection = connectionFactory.CreateConnection();
-            _channel = _connection.CreateModel();
-
-            // Declarar exchange
-            _channel.ExchangeDeclare(
-                exchange: _exchangeName,
-                type: ExchangeType.Topic,
-                durable: true,
-                autoDelete: false);
+            _connectionFactory = connectionFactory;
 
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 WriteIndented = false
             };
+        }
+
+        /// <summary>
+        /// Obtiene la conexión, creándola si es necesario.
+        /// </summary>
+        private IConnection GetConnection()
+        {
+            if (_connection != null && _connection.IsOpen)
+                return _connection;
+
+            lock (_lockObject)
+            {
+                if (_connection == null || !_connection.IsOpen)
+                {
+                    _connection = _connectionFactory.CreateConnection();
+                }
+            }
+
+            return _connection;
+        }
+
+        /// <summary>
+        /// Obtiene el canal, creándolo si es necesario.
+        /// </summary>
+        private IModel GetChannel()
+        {
+            var connection = GetConnection();
+
+            if (_channel != null && _channel.IsOpen)
+                return _channel;
+
+            lock (_lockObject)
+            {
+                if (_channel == null || !_channel.IsOpen)
+                {
+                    _channel = connection.CreateModel();
+
+                    // Declarar exchange
+                    _channel.ExchangeDeclare(
+                        exchange: _exchangeName,
+                        type: ExchangeType.Topic,
+                        durable: true,
+                        autoDelete: false);
+                }
+            }
+
+            return _channel;
         }
 
         /// <summary>
@@ -61,17 +101,18 @@ namespace events_service.Infrastructure.Messaging
 
             try
             {
+                var channel = GetChannel();
                 var eventType = domainEvent.GetType().Name;
                 var routingKey = eventType.ToLowerInvariant();
                 var message = JsonSerializer.Serialize(domainEvent, domainEvent.GetType(), _jsonOptions);
                 var body = Encoding.UTF8.GetBytes(message);
 
-                var properties = _channel.CreateBasicProperties();
+                var properties = channel.CreateBasicProperties();
                 properties.Persistent = true;
                 properties.Type = eventType;
                 properties.Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
 
-                _channel.BasicPublish(
+                channel.BasicPublish(
                     exchange: _exchangeName,
                     routingKey: routingKey,
                     basicProperties: properties,
