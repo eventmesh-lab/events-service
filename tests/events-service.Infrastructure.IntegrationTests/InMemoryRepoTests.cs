@@ -92,3 +92,4 @@ namespace events_service.Infrastructure.IntegrationTests
     }
 }
 
+

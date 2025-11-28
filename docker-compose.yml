@@ -35,7 +35,10 @@ services:
       retries: 5
 
   api:
-    image: MYACR.azurecr.io/events-api:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: events-api:local
     container_name: events-api
     ports:
       - "5000:8080"
@@ -51,10 +54,8 @@ services:
     volumes:
       - api_data:/app/data
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+      - postgres
+      - rabbitmq
 
 volumes:
   postgres_data:

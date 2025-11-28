@@ -189,9 +189,7 @@ public static class EventosEndpointsExtensions
                     {
                         ["application/json"] = new()
                         {
-                            Example = new Microsoft.OpenApi.Any.OpenApiString(@"{
-  ""id"": ""770e8400-e29b-41d4-a716-446655440002""
-}")
+                            Example = new Microsoft.OpenApi.Any.OpenApiString(@"{""id"": ""550e8400-e29b-41d4-a716-446655440000"", ""nombre"": ""Concierto Rock 2025"", ""descripcion"": ""Gran concierto de rock con artistas internacionales"", ""fecha"": ""2025-12-15T20:00:00Z"", ""horasDuracion"": 3, ""minutosDuracion"": 0, ""estado"": ""Borrador"", ""organizadorId"": ""550e8400-e29b-41d4-a716-446655440000"", ""venueId"": ""660e8400-e29b-41d4-a716-446655440001"", ""categoria"": ""Música"", ""tarifaPublicacion"": 50.00, ""secciones"": [{""id"": ""880e8400-e29b-41d4-a716-446655440003"", ""nombre"": ""VIP"", ""capacidad"": 100, ""precio"": 150.00, ""tipoAsiento"": ""Numerado""}, {""id"": ""880e8400-e29b-41d4-a716-446655440004"", ""nombre"": ""General"", ""capacidad"": 500, ""precio"": 75.00, ""tipoAsiento"": ""General""}]}")
                         }
                     }
                 },
@@ -202,23 +200,13 @@ public static class EventosEndpointsExtensions
                     {
                         ["application/json"] = new()
                         {
-                            Example = new Microsoft.OpenApi.Any.OpenApiString(@"{
-  ""type"": ""https://tools.ietf.org/html/rfc7231#section-6.5.1"",
-  ""title"": ""Bad Request"",
-  ""status"": 400,
-  ""detail"": ""Uno o más errores de validación ocurrieron"",
-  ""errors"": {
-    ""Nombre"": [""El nombre del evento es requerido.""],
-    ""Fecha"": [""La fecha del evento debe ser en el futuro.""],
-    ""Secciones"": [""El evento debe tener al menos una sección.""]
-  }
-}")
+                            Example = new Microsoft.OpenApi.Any.OpenApiString(@"{""type"": ""https://tools.ietf.org/html/rfc7231#section-6.5.1"", ""title"": ""Bad Request"", ""status"": 400, ""detail"": ""Los datos proporcionados no son válidos.""}")
                         }
                     }
                 }
             }
         })
-        .Produces<CrearEventoCommandResponse>(StatusCodes.Status201Created)
+        .Produces(StatusCodes.Status201Created)
         .Produces(StatusCodes.Status400BadRequest);
 
         // POST /api/eventos/{id}/publicar
