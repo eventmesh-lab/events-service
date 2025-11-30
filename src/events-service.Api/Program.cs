@@ -92,6 +92,17 @@ builder.Services.AddScoped<IEventoRepository, EventoRepository>();
 // Registrar mensajería RabbitMQ
 builder.Services.AddRabbitMqMessaging(builder.Configuration);
 
+// Configurar CORS para permitir peticiones desde el frontend
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
 // Configurar pipeline HTTP
@@ -107,6 +118,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
+
+app.UseCors("AllowFrontend");
 
 // Mapear endpoints
 app.MapControllers();
