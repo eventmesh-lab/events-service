@@ -160,6 +160,20 @@ public class EventosController : ControllerBase
     }
 
     /// <summary>
+    /// Obtiene todos los eventos.
+    /// </summary>
+    /// <returns>Lista de todos los eventos.</returns>
+    /// <response code="200">Lista de eventos obtenida exitosamente.</response>
+    [HttpGet]
+    [ProducesResponseType(typeof(List<EventoResponseDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ObtenerTodosEventos()
+    {
+        var eventos = await _repository.GetAllAsync();
+        var dtos = eventos.Select(EventoResponseDto.FromDomain).ToList();
+        return Ok(dtos);
+    }
+
+    /// <summary>
     /// Obtiene todos los eventos de un organizador.
     /// </summary>
     /// <param name="organizadorId">Identificador único del organizador.</param>

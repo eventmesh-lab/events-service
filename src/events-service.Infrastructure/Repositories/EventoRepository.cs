@@ -186,6 +186,20 @@ namespace events_service.Infrastructure.Repositories
         }
 
         /// <summary>
+        /// Obtiene todos los eventos.
+        /// </summary>
+        /// <param name="cancellationToken">Token de cancelación.</param>
+        /// <returns>Lista de todos los eventos.</returns>
+        public async Task<IReadOnlyList<Evento>> GetAllAsync(CancellationToken cancellationToken = default)
+        {
+            var entities = await _context.Eventos
+                .Include(e => e.Secciones)
+                .ToListAsync(cancellationToken);
+
+            return entities.Select(MapToDomain).ToList();
+        }
+
+        /// <summary>
         /// Mapea una entidad de persistencia a un agregado de dominio.
         /// </summary>
         private Evento MapToDomain(EventoEntity entity)

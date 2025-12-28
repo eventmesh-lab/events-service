@@ -58,6 +58,13 @@ namespace events_service.Domain.Ports
         /// <param name="cancellationToken">Token de cancelación.</param>
         /// <returns>Lista de eventos del venue.</returns>
         Task<IReadOnlyList<Evento>> GetByVenueIdAsync(Guid venueId, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Obtiene todos los eventos.
+        /// </summary>
+        /// <param name="cancellationToken">Token de cancelación.</param>
+        /// <returns>Lista de todos los eventos.</returns>
+        Task<IReadOnlyList<Evento>> GetAllAsync(CancellationToken cancellationToken = default);
     }
 }
 

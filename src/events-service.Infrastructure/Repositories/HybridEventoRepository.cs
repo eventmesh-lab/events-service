@@ -122,6 +122,24 @@ namespace events_service.Infrastructure.Repositories
             }
         }
 
+        /// <summary>
+        /// Obtiene todos los eventos.
+        /// </summary>
+        /// <param name="cancellationToken">Token de cancelación.</param>
+        /// <returns>Lista de todos los eventos, o lista vacía si falla.</returns>
+        public async Task<IReadOnlyList<Evento>> GetAllAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                return await _primary.GetAllAsync(cancellationToken);
+            }
+            catch (Exception ex) when (IsTransientPersistenceFailure(ex))
+            {
+                _logger.LogWarning(ex, "Fallo al consultar todos los eventos en base de datos. Se retornará lista vacía.");
+                return Array.Empty<Evento>();
+            }
+        }
+
         private static bool IsTransientPersistenceFailure(Exception ex)
         {
             return ex is DbException or DbUpdateException or TimeoutException or InvalidOperationException;
