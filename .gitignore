@@ -5,3 +5,7 @@ obj/
 *.suo
 *.db
 .env
+coverage-report/
+tests/events-service.Domain.Tests/TestResults/
+tests/events-service.Application.Tests/TestResults/
+tests/events-service.Infrastructure.IntegrationTests/TestResults/
