@@ -88,6 +88,29 @@ namespace events_service.Infrastructure.Persistence
         /// Fecha de publicación del evento (opcional).
         /// </summary>
         public DateTime? FechaPublicacion { get; set; }
+
+        /// <summary>
+        /// Blob de la imagen principal.
+        /// </summary>
+        public string? ImagenPrincipalBlobName { get; set; }
+
+        public string? ImagenPrincipalContentType { get; set; }
+
+        public long? ImagenPrincipalSizeBytes { get; set; }
+
+        /// <summary>
+        /// Lista de blobs de imágenes secundarias en formato JSON.
+        /// </summary>
+        public string ImagenesSecundariasJson { get; set; } = "[]";
+
+        /// <summary>
+        /// Blob del folleto en PDF.
+        /// </summary>
+        public string? FolletoBlobName { get; set; }
+
+        public string? FolletoContentType { get; set; }
+
+        public long? FolletoSizeBytes { get; set; }
     }
 }
 

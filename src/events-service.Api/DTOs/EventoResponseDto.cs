@@ -92,6 +92,36 @@ namespace events_service.Api.DTOs
         public List<SeccionResponseDto> Secciones { get; init; } = new();
 
         /// <summary>
+        /// Blob de la imagen principal.
+        /// </summary>
+        public string? ImagenPrincipalBlob { get; init; }
+
+        /// <summary>
+        /// URL pública/resuelta de la imagen principal.
+        /// </summary>
+        public string? ImagenPrincipalUrl { get; set; }
+
+        /// <summary>
+        /// Blobs de imágenes secundarias.
+        /// </summary>
+        public List<string> ImagenesSecundariasBlobs { get; init; } = new();
+
+        /// <summary>
+        /// URLs de imágenes secundarias.
+        /// </summary>
+        public List<string> ImagenesSecundariasUrls { get; set; } = new();
+
+        /// <summary>
+        /// Blob del folleto PDF.
+        /// </summary>
+        public string? FolletoBlob { get; init; }
+
+        /// <summary>
+        /// URL del folleto PDF.
+        /// </summary>
+        public string? FolletoUrl { get; set; }
+
+        /// <summary>
         /// Mapea un agregado de dominio Evento a un DTO de respuesta.
         /// </summary>
         public static EventoResponseDto FromDomain(Evento evento)
@@ -116,7 +146,10 @@ namespace events_service.Api.DTOs
                 FechaCreacion = evento.FechaCreacion,
                 FechaPublicacion = evento.FechaPublicacion,
                 Version = evento.Version,
-                Secciones = evento.Secciones.Select(s => SeccionResponseDto.FromDomain(s)).ToList()
+                Secciones = evento.Secciones.Select(s => SeccionResponseDto.FromDomain(s)).ToList(),
+                ImagenPrincipalBlob = evento.ImagenPrincipal?.BlobName,
+                ImagenesSecundariasBlobs = evento.ImagenesSecundarias.Select(i => i.BlobName).ToList(),
+                FolletoBlob = evento.FolletoPdf?.BlobName
             };
         }
     }

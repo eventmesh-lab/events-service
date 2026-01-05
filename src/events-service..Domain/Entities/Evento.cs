@@ -14,6 +14,7 @@ namespace events_service.Domain.Entities
     {
         private readonly List<IDomainEvent> _domainEvents = new();
         private readonly List<Seccion> _secciones = new();
+        private readonly List<MediaAsset> _imagenesSecundarias = new();
 
         public Guid Id { get; private set; }
         public string Nombre { get; private set; } = string.Empty;
@@ -29,6 +30,10 @@ namespace events_service.Domain.Entities
         public DateTime FechaCreacion { get; private set; }
         public DateTime? FechaPublicacion { get; private set; }
         public int Version { get; private set; }
+
+        public MediaAsset? ImagenPrincipal { get; private set; }
+        public IReadOnlyCollection<MediaAsset> ImagenesSecundarias => _imagenesSecundarias.AsReadOnly();
+        public MediaAsset? FolletoPdf { get; private set; }
 
         public IReadOnlyCollection<Seccion> Secciones => _secciones.AsReadOnly();
 
@@ -294,6 +299,87 @@ namespace events_service.Domain.Entities
             IncrementarVersion();
 
             RegistrarEvento(new EventoCancelado(Id, motivo));
+        }
+
+        /// <summary>
+        /// Asigna la imagen principal del evento (validando que sea imagen válida <=1MB).
+        /// </summary>
+        public void DefinirImagenPrincipal(MediaAsset imagen)
+        {
+            if (imagen == null)
+            {
+                throw new ArgumentNullException(nameof(imagen));
+            }
+
+            if (!imagen.EsImagen)
+            {
+                throw new InvalidOperationException("La imagen principal debe ser un archivo de imagen soportado.");
+            }
+
+            ImagenPrincipal = imagen;
+            IncrementarVersion();
+        }
+
+        /// <summary>
+        /// Reemplaza el conjunto de imágenes secundarias (máximo 5, todas deben ser imágenes válidas).
+        /// </summary>
+        public void DefinirImagenesSecundarias(IEnumerable<MediaAsset> imagenes)
+        {
+            if (imagenes == null)
+            {
+                throw new ArgumentNullException(nameof(imagenes));
+            }
+
+            var lista = imagenes.ToList();
+
+            if (lista.Count > 5)
+            {
+                throw new InvalidOperationException("No se pueden asociar más de 5 imágenes secundarias.");
+            }
+
+            if (lista.Any(img => img == null || !img.EsImagen))
+            {
+                throw new InvalidOperationException("Todas las imágenes secundarias deben ser archivos de imagen soportados.");
+            }
+
+            _imagenesSecundarias.Clear();
+            _imagenesSecundarias.AddRange(lista);
+            IncrementarVersion();
+        }
+
+        /// <summary>
+        /// Asigna el folleto en PDF (validando tipo y tamaño).
+        /// </summary>
+        public void DefinirFolleto(MediaAsset folleto)
+        {
+            if (folleto == null)
+            {
+                throw new ArgumentNullException(nameof(folleto));
+            }
+
+            if (!folleto.EsPdf)
+            {
+                throw new InvalidOperationException("El folleto debe ser un archivo PDF válido.");
+            }
+
+            FolletoPdf = folleto;
+            IncrementarVersion();
+        }
+
+        /// <summary>
+        /// Sincroniza los blobs desde la capa de persistencia sin disparar reglas adicionales.
+        /// </summary>
+        public void SincronizarMedia(MediaAsset? imagenPrincipal, IEnumerable<MediaAsset>? imagenesSecundarias, MediaAsset? folleto)
+        {
+            ImagenPrincipal = imagenPrincipal;
+
+            _imagenesSecundarias.Clear();
+            if (imagenesSecundarias != null)
+            {
+                _imagenesSecundarias.AddRange(imagenesSecundarias);
+            }
+
+            FolletoPdf = folleto;
         }
 
         public IReadOnlyCollection<IDomainEvent> GetDomainEvents() => _domainEvents.AsReadOnly();

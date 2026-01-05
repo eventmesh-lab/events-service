@@ -84,6 +84,33 @@ namespace events_service.Infrastructure.Persistence
                 .HasColumnName("version")
                 .IsRequired();
 
+            builder.Property(e => e.ImagenPrincipalBlobName)
+                .HasColumnName("imagen_principal_blob")
+                .HasMaxLength(400);
+
+            builder.Property(e => e.ImagenPrincipalContentType)
+                .HasColumnName("imagen_principal_content_type")
+                .HasMaxLength(100);
+
+            builder.Property(e => e.ImagenPrincipalSizeBytes)
+                .HasColumnName("imagen_principal_size_bytes");
+
+            builder.Property(e => e.ImagenesSecundariasJson)
+                .HasColumnName("imagenes_secundarias_json")
+                .HasColumnType("text")
+                .IsRequired();
+
+            builder.Property(e => e.FolletoBlobName)
+                .HasColumnName("folleto_blob")
+                .HasMaxLength(400);
+
+            builder.Property(e => e.FolletoContentType)
+                .HasColumnName("folleto_content_type")
+                .HasMaxLength(100);
+
+            builder.Property(e => e.FolletoSizeBytes)
+                .HasColumnName("folleto_size_bytes");
+
             // Relación uno a muchos con Secciones
             builder.HasMany(e => e.Secciones)
                 .WithOne(s => s.Evento)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using events_service.Domain.Entities;
 using events_service.Domain.Ports;
@@ -95,6 +96,13 @@ namespace events_service.Infrastructure.Repositories
             entity.Version = evento.Version;
             entity.FechaCreacion = evento.FechaCreacion;
             entity.FechaPublicacion = evento.FechaPublicacion;
+            entity.ImagenPrincipalBlobName = evento.ImagenPrincipal?.BlobName;
+            entity.ImagenPrincipalContentType = evento.ImagenPrincipal?.ContentType;
+            entity.ImagenPrincipalSizeBytes = evento.ImagenPrincipal?.SizeBytes;
+            entity.ImagenesSecundariasJson = SerializarSecundarias(evento.ImagenesSecundarias);
+            entity.FolletoBlobName = evento.FolletoPdf?.BlobName;
+            entity.FolletoContentType = evento.FolletoPdf?.ContentType;
+            entity.FolletoSizeBytes = evento.FolletoPdf?.SizeBytes;
 
             // Actualizar secciones (eliminar las que ya no existen y agregar nuevas)
             var seccionesExistentes = entity.Secciones.ToList();
@@ -232,6 +240,11 @@ namespace events_service.Infrastructure.Repositories
             SetPrivateProperty(evento, nameof(Evento.FechaCreacion), entity.FechaCreacion);
             SetPrivateProperty(evento, nameof(Evento.FechaPublicacion), entity.FechaPublicacion);
 
+            var principal = CrearMediaDesdeEntity(entity.ImagenPrincipalBlobName, entity.ImagenPrincipalContentType, entity.ImagenPrincipalSizeBytes, esImagen: true);
+            var folleto = CrearMediaDesdeEntity(entity.FolletoBlobName, entity.FolletoContentType, entity.FolletoSizeBytes, esImagen: false);
+            var secundarias = DeserializarSecundarias(entity.ImagenesSecundariasJson);
+            evento.SincronizarMedia(principal, secundarias, folleto);
+
             return evento;
         }
 
@@ -264,7 +277,14 @@ namespace events_service.Infrastructure.Repositories
                     Nombre = s.Nombre,
                     Capacidad = s.Capacidad,
                     PrecioMonto = s.Precio.Valor
-                }).ToList()
+                }).ToList(),
+                ImagenPrincipalBlobName = evento.ImagenPrincipal?.BlobName,
+                ImagenPrincipalContentType = evento.ImagenPrincipal?.ContentType,
+                ImagenPrincipalSizeBytes = evento.ImagenPrincipal?.SizeBytes,
+                ImagenesSecundariasJson = SerializarSecundarias(evento.ImagenesSecundarias),
+                FolletoBlobName = evento.FolletoPdf?.BlobName,
+                FolletoContentType = evento.FolletoPdf?.ContentType,
+                FolletoSizeBytes = evento.FolletoPdf?.SizeBytes
             };
         }
 
@@ -277,6 +297,52 @@ namespace events_service.Infrastructure.Repositories
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
             property?.SetValue(obj, value);
         }
+
+        private static MediaAsset? CrearMediaDesdeEntity(string? blobName, string? contentType, long? sizeBytes, bool esImagen)
+        {
+            if (string.IsNullOrWhiteSpace(blobName) || string.IsNullOrWhiteSpace(contentType) || sizeBytes is null)
+            {
+                return null;
+            }
+
+            return esImagen
+                ? MediaAsset.CrearImagen(blobName, contentType, sizeBytes.Value)
+                : MediaAsset.CrearPdf(blobName, contentType, sizeBytes.Value);
+        }
+
+        private static List<MediaAsset> DeserializarSecundarias(string? json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return new List<MediaAsset>();
+            }
+
+            try
+            {
+                var dtoList = JsonSerializer.Deserialize<List<MediaAssetDto>>(json);
+                if (dtoList == null)
+                {
+                    return new List<MediaAsset>();
+                }
+
+                return dtoList
+                    .Where(d => d != null && !string.IsNullOrWhiteSpace(d.BlobName) && !string.IsNullOrWhiteSpace(d.ContentType))
+                    .Select(d => MediaAsset.CrearImagen(d.BlobName!, d.ContentType!, d.SizeBytes))
+                    .ToList();
+            }
+            catch
+            {
+                return new List<MediaAsset>();
+            }
+        }
+
+        private static string SerializarSecundarias(IEnumerable<MediaAsset> assets)
+        {
+            var dto = assets.Select(a => new MediaAssetDto(a.BlobName, a.ContentType, a.SizeBytes)).ToList();
+            return JsonSerializer.Serialize(dto);
+        }
+
+        private sealed record MediaAssetDto(string BlobName, string ContentType, long SizeBytes);
     }
 }
 
