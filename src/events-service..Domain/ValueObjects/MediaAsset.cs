@@ -7,7 +7,7 @@ namespace events_service.Domain.ValueObjects
     /// </summary>
     public sealed record MediaAsset(string BlobName, string ContentType, long SizeBytes)
     {
-        public const long MaxSizeBytes = 1_000_000; // ~1 MB
+        public const long MaxSizeBytes = 5_000_000; // ~5 MB
 
         public static readonly string[] AllowedImageContentTypes =
         {

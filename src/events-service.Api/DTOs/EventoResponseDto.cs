@@ -99,7 +99,7 @@ namespace events_service.Api.DTOs
         /// <summary>
         /// URL pública/resuelta de la imagen principal.
         /// </summary>
-        public string? ImagenPrincipalUrl { get; set; }
+        public string? MainImageUrl { get; init; }
 
         /// <summary>
         /// Blobs de imágenes secundarias.
@@ -109,7 +109,7 @@ namespace events_service.Api.DTOs
         /// <summary>
         /// URLs de imágenes secundarias.
         /// </summary>
-        public List<string> ImagenesSecundariasUrls { get; set; } = new();
+        public List<string> SecondaryImageUrls { get; init; } = new();
 
         /// <summary>
         /// Blob del folleto PDF.
@@ -119,7 +119,7 @@ namespace events_service.Api.DTOs
         /// <summary>
         /// URL del folleto PDF.
         /// </summary>
-        public string? FolletoUrl { get; set; }
+        public string? BrochureUrl { get; init; }
 
         /// <summary>
         /// Mapea un agregado de dominio Evento a un DTO de respuesta.

@@ -15,10 +15,13 @@ namespace events_service.Infrastructure.Storage;
 
 public class FirebaseEventMediaStorage : IEventMediaStorage
 {
+    private static readonly HttpClient _httpClient = new HttpClient();
+
     private readonly FirebaseStorageOptions _options;
     private readonly ILogger<FirebaseEventMediaStorage> _logger;
     private readonly StorageClient _storageClient;
     private readonly string _bucketName;
+    private readonly string? _emulatorHost;
 
     public FirebaseEventMediaStorage(IOptions<FirebaseStorageOptions> options, ILogger<FirebaseEventMediaStorage> logger)
     {
@@ -30,29 +33,47 @@ public class FirebaseEventMediaStorage : IEventMediaStorage
 
         _bucketName = _options.BucketName;
         
-        GoogleCredential credential;
-        
         // 1. Verificar si estamos usando el Emulador de Storage
-        var emulatorHost = Environment.GetEnvironmentVariable("STORAGE_EMULATOR_HOST");
-        if (!string.IsNullOrWhiteSpace(emulatorHost))
+        _emulatorHost = Environment.GetEnvironmentVariable("STORAGE_EMULATOR_HOST");
+        if (!string.IsNullOrWhiteSpace(_emulatorHost))
         {
-            _logger.LogInformation("Using Firebase Storage Emulator at {Host}", emulatorHost);
-            // El emulador acepta cualquier token, creamos uno dummy "owner"
-            credential = GoogleCredential.FromAccessToken("owner");
-        }
-        else if (!string.IsNullOrWhiteSpace(_options.CredentialsPath) && File.Exists(_options.CredentialsPath))
-        {
-            credential = GoogleCredential.FromFile(_options.CredentialsPath);
+            _logger.LogInformation("Using Firebase Storage Emulator at {Host}", _emulatorHost);
+
+            // Ajustar BaseUri: El cliente .NET espera que apunte a la raíz de la API JSON
+            // Por defecto es https://storage.googleapis.com/storage/v1/
+            // Si el emulador es http://host:9199, debemos añadir /storage/v1/
+            var baseUri = _emulatorHost;
+            if (!baseUri.EndsWith("/")) baseUri += "/";
+            if (!baseUri.Contains("storage/v1")) baseUri += "storage/v1/";
+
+            _logger.LogInformation("Adjusted BaseUri for Emulator: {BaseUri}", baseUri);
+            
+            // Usamos UnauthenticatedAccess = true para el emulador
+            var builder = new StorageClientBuilder
+            {
+                BaseUri = baseUri,
+                UnauthenticatedAccess = true 
+            };
+
+            _storageClient = builder.Build();
         }
         else
         {
-            // Fallback a credenciales por defecto
-            _logger.LogWarning("No credentials path provided or file not found. Using Application Default Credentials.");
-            credential = GoogleCredential.GetApplicationDefault();
-        }
+            GoogleCredential credential;
+            if (!string.IsNullOrWhiteSpace(_options.CredentialsPath) && File.Exists(_options.CredentialsPath))
+            {
+                credential = GoogleCredential.FromFile(_options.CredentialsPath);
+            }
+            else
+            {
+                // Fallback a credenciales por defecto
+                _logger.LogWarning("No credentials path provided or file not found. Using Application Default Credentials.");
+                credential = GoogleCredential.GetApplicationDefault();
+            }
 
-        // Crear el cliente de Storage directamente
-        _storageClient = StorageClient.Create(credential);
+            // Crear el cliente de Storage directamente
+            _storageClient = StorageClient.Create(credential);
+        }
     }
 
     public async Task<StoredBlob> UploadImageAsync(Guid eventoId, UploadFile file, bool esPrincipal, CancellationToken cancellationToken = default)
@@ -76,6 +97,49 @@ public class FirebaseEventMediaStorage : IEventMediaStorage
         var blobName = $"eventos/{eventoId}/folleto/{Guid.NewGuid()}-{sanitizedFileName}";
 
         return await UploadBlobAsync(blobName, file, cancellationToken);
+    }
+
+    public async Task<string> GetFileUrlAsync(string blobName, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(blobName)) return string.Empty;
+
+        // Si tenemos URL base pública (emulador o bucket público), construimos la URL directa
+        if (!string.IsNullOrWhiteSpace(_options.PublicBaseUrl))
+        {
+             var baseUrl = _options.PublicBaseUrl.TrimEnd('/');
+             return $"{baseUrl}/{System.Uri.EscapeDataString(blobName)}?alt=media";
+        }
+
+        // Check for emulator host fallback
+        var emulatorHost = Environment.GetEnvironmentVariable("STORAGE_EMULATOR_HOST");
+        if (!string.IsNullOrWhiteSpace(emulatorHost))
+        {
+             var baseUrl = emulatorHost.TrimEnd('/');
+             return $"{baseUrl}/v0/b/{_bucketName}/o/{System.Uri.EscapeDataString(blobName)}?alt=media";
+        }
+
+        // Si no, generamos Signed URL
+        try 
+        {
+            var urlSigner = UrlSigner.FromCredential(GoogleCredential.GetApplicationDefault());
+            
+            if (!string.IsNullOrWhiteSpace(_options.CredentialsPath) && File.Exists(_options.CredentialsPath)) 
+            {
+                 using var streamCred = File.OpenRead(_options.CredentialsPath);
+                 urlSigner = UrlSigner.FromCredential(ServiceAccountCredential.FromServiceAccountData(streamCred));
+            }
+            
+            return await urlSigner.SignAsync(
+                _bucketName,
+                blobName,
+                TimeSpan.FromDays(1), // URL válida por 1 día al solicitarla bajo demanda
+                HttpMethod.Get);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando Signed URL para {BlobName}", blobName);
+            return string.Empty; 
+        }
     }
 
     private void ValidateFile(UploadFile file, bool isImage)
@@ -118,8 +182,98 @@ public class FirebaseEventMediaStorage : IEventMediaStorage
         return (sanitized + extension).ToLowerInvariant();
     }
 
+    private async Task<StoredBlob> UploadToEmulatorAsync(string emulatorHost, string blobName, UploadFile file, CancellationToken cancellationToken)
+    {
+        var baseHost = emulatorHost.TrimEnd('/');
+        
+        // Normalizar host
+        if (baseHost.EndsWith("storage/v1")) 
+             baseHost = baseHost.Substring(0, baseHost.IndexOf("storage/v1"));
+        baseHost = baseHost.TrimEnd('/');
+
+        // 1. Asegurar Bucket (Intento, sin fallar si no funciona la API)
+        try 
+        {
+            var projectId = !string.IsNullOrEmpty(_options.ProjectId) ? _options.ProjectId : "eventmesh-local";
+            var createBucketUrl = $"{baseHost}/storage/v1/b?project={projectId}";
+            var bucketJson = $"{{\"name\": \"{_bucketName}\"}}";
+            using var bucketContent = new StringContent(bucketJson, System.Text.Encoding.UTF8, "application/json");
+            var createResp = await _httpClient.PostAsync(createBucketUrl, bucketContent, cancellationToken);
+             // Ignoramos resultado, muchos emuladores no implementan CREATE, pero asumen el bucket por defecto.
+        }
+        catch { /* Ignore */ }
+
+        // 2. Subir usando Resumable Upload (Manual)
+        // La carga simple (uploadType=media) a veces falla en el emulador (400 Bad Request).
+        // La carga resumable es más robusta y es lo que la SDK intenta hacer, pero aquí controlamos la respuesta de error text/plain.
+        try 
+        {
+            // Paso A: Iniciar Sesión de Subida
+            var initiateUrl = $"{baseHost}/upload/storage/v1/b/{_bucketName}/o?uploadType=resumable&name={System.Uri.EscapeDataString(blobName)}";
+
+            using var initRequest = new HttpRequestMessage(HttpMethod.Post, initiateUrl);
+            initRequest.Headers.Add("X-Upload-Content-Type", file.ContentType);
+            // Enviamos metadata básica vacía o mínima
+            initRequest.Content = new StringContent($"{{\"contentType\": \"{file.ContentType}\"}}", System.Text.Encoding.UTF8, "application/json");
+
+            var initResponse = await _httpClient.SendAsync(initRequest, cancellationToken);
+
+            if (!initResponse.IsSuccessStatusCode)
+            {
+                var error = await initResponse.Content.ReadAsStringAsync();
+                _logger.LogError("Emulator Resumable Init Failed: {StatusCode} {Error}", initResponse.StatusCode, error);
+                throw new InvalidOperationException($"Emulator Init Failed: {initResponse.StatusCode} {error}");
+            }
+
+            var uploadUrl = initResponse.Headers.Location?.ToString();
+            if (string.IsNullOrEmpty(uploadUrl))
+                throw new InvalidOperationException("Emulator did not return a Location header for resumable upload.");
+
+            // Fix URL: El emulador a veces devuelve http://0.0.0.0:9199/...
+            // Debemos reemplazar 0.0.0.0 por el host real del emulador si estamos en docker network.
+            if (uploadUrl.Contains("://0.0.0.0:"))
+            {
+                 // Extraemos el host base de la config original
+                 var uriBuilder = new UriBuilder(uploadUrl);
+                 var originalHostUri = new Uri(baseHost);
+                 uriBuilder.Host = originalHostUri.Host;
+                 // Preservar puerto original del emulador si es distinto? 
+                 // Normalmente baseHost ya tiene el puerto correcto.
+                 uploadUrl = uriBuilder.ToString();
+            }
+            
+            // Paso B: Subir Bytes (PUT)
+            using var fileContent = new ByteArrayContent(file.Content);
+            // NO establezcas Content-Type en el PUT de content si ya se definió en X-Upload-Content-Type, 
+            // aunque GCS estándar lo ignora, el emulador puede ser estricto. 
+            // Pero es buena práctica poner el Content-Length que HttpClient pone.
+
+            var uploadResponse = await _httpClient.PutAsync(uploadUrl, fileContent, cancellationToken);
+
+            if (!uploadResponse.IsSuccessStatusCode)
+            {
+                var error = await uploadResponse.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"Emulator PUT Failed: {uploadResponse.StatusCode} {error}");
+            }
+
+            // Exitoso
+            string publicUrl = await GetFileUrlAsync(blobName, cancellationToken);
+            return new StoredBlob(blobName, file.ContentType, file.Length, publicUrl);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al subir archivo a Firebase Storage (Emulator Resumable): {BlobName}", blobName);
+            throw new InvalidOperationException($"Error subiendo archivo a emulador: {ex.Message}", ex);
+        }
+    }
+
     private async Task<StoredBlob> UploadBlobAsync(string blobName, UploadFile file, CancellationToken cancellationToken)
     {
+        if (!string.IsNullOrWhiteSpace(_emulatorHost))
+        {
+             return await UploadToEmulatorAsync(_emulatorHost, blobName, file, cancellationToken);
+        }
+
         try
         {
             using var stream = new MemoryStream(file.Content);
