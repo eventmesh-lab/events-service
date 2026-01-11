@@ -36,4 +36,9 @@ public interface IEventMediaStorage
     /// Sube un folleto PDF asociado a un evento.
     /// </summary>
     Task<StoredBlob> UploadBrochureAsync(Guid eventoId, UploadFile file, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Obtiene la URL pública o firmada de un archivo almacenado.
+    /// </summary>
+    Task<string> GetFileUrlAsync(string blobName, CancellationToken cancellationToken = default);
 }

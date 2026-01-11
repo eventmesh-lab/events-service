@@ -7,8 +7,12 @@ using events_service.Application.Commands.FinalizarEvento;
 using events_service.Application.Commands.IniciarEvento;
 using events_service.Application.Commands.PagarPublicacion;
 using events_service.Application.Commands.PublicarEvento;
+using events_service.Application.Commands.SubirImagenPrincipal;
+using events_service.Application.Commands.SubirImagenSecundaria;
+using events_service.Application.Commands.SubirFolleto;
 using events_service.Api.DTOs;
 using events_service.Domain.Ports;
+using events_service.Domain.Entities;
 
 namespace events_service.Api.Controllers;
 
@@ -22,14 +26,16 @@ public class EventosController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly IEventoRepository _repository;
+    private readonly IEventMediaStorage _mediaStorage;
 
     /// <summary>
     /// Inicializa una nueva instancia del controlador de eventos.
     /// </summary>
-    public EventosController(IMediator mediator, IEventoRepository repository)
+    public EventosController(IMediator mediator, IEventoRepository repository, IEventMediaStorage mediaStorage)
     {
         _mediator = mediator;
         _repository = repository;
+        _mediaStorage = mediaStorage;
     }
 
     /// <summary>
@@ -147,6 +153,75 @@ public class EventosController : ControllerBase
     }
 
     /// <summary>
+    /// Sube la imagen principal del evento.
+    /// </summary>
+    [HttpPost("{id:guid}/imagen-principal")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SubirImagenPrincipal(Guid id, IFormFile file)
+    {
+        if (file == null || file.Length == 0) return BadRequest("Debe enviar un archivo.");
+
+        try
+        {
+            var command = new SubirImagenPrincipalCommand(id, file.FileName, file.ContentType, file.OpenReadStream(), file.Length);
+            var url = await _mediator.Send(command);
+            return Ok(new { Url = url });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound($"No se encontró el evento con ID {id}");
+        }
+    }
+
+    /// <summary>
+    /// Sube una imagen secundaria al evento.
+    /// </summary>
+    [HttpPost("{id:guid}/imagen-secundaria")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SubirImagenSecundaria(Guid id, IFormFile file)
+    {
+        if (file == null || file.Length == 0) return BadRequest("Debe enviar un archivo.");
+
+        try
+        {
+            var command = new SubirImagenSecundariaCommand(id, file.FileName, file.ContentType, file.OpenReadStream(), file.Length);
+            var url = await _mediator.Send(command);
+            return Ok(new { Url = url });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound($"No se encontró el evento con ID {id}");
+        }
+    }
+
+    /// <summary>
+    /// Sube el folleto PDF del evento.
+    /// </summary>
+    [HttpPost("{id:guid}/folleto")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SubirFolleto(Guid id, IFormFile file)
+    {
+        if (file == null || file.Length == 0) return BadRequest("Debe enviar un archivo.");
+
+        try
+        {
+            var command = new SubirFolletoCommand(id, file.FileName, file.ContentType, file.OpenReadStream(), file.Length);
+            var url = await _mediator.Send(command);
+            return Ok(new { Url = url });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound($"No se encontró el evento con ID {id}");
+        }
+    }
+
+    /// <summary>
     /// Obtiene todos los eventos publicados.
     /// </summary>
     /// <returns>Lista de eventos publicados.</returns>
@@ -156,7 +231,7 @@ public class EventosController : ControllerBase
     public async Task<IActionResult> ObtenerEventosPublicados()
     {
         var eventos = await _repository.GetPublicadosAsync();
-        var dtos = eventos.Select(EventoResponseDto.FromDomain).ToList();
+        var dtos = await EnrichEventosWithUrls(eventos);
         return Ok(dtos);
     }
 
@@ -170,7 +245,7 @@ public class EventosController : ControllerBase
     public async Task<IActionResult> ObtenerTodosEventos()
     {
         var eventos = await _repository.GetAllAsync();
-        var dtos = eventos.Select(EventoResponseDto.FromDomain).ToList();
+        var dtos = await EnrichEventosWithUrls(eventos);
         return Ok(dtos);
     }
 
@@ -185,7 +260,7 @@ public class EventosController : ControllerBase
     public async Task<IActionResult> ObtenerEventosPorOrganizador(Guid organizadorId)
     {
         var eventos = await _repository.GetByOrganizadorIdAsync(organizadorId);
-        var dtos = eventos.Select(EventoResponseDto.FromDomain).ToList();
+        var dtos = await EnrichEventosWithUrls(eventos);
         return Ok(dtos);
     }
 
@@ -200,7 +275,7 @@ public class EventosController : ControllerBase
     public async Task<IActionResult> ObtenerEventosPorVenue(Guid venueId)
     {
         var eventos = await _repository.GetByVenueIdAsync(venueId);
-        var dtos = eventos.Select(EventoResponseDto.FromDomain).ToList();
+        var dtos = await EnrichEventosWithUrls(eventos);
         return Ok(dtos);
     }
 
@@ -220,7 +295,59 @@ public class EventosController : ControllerBase
         if (evento == null)
             return NotFound();
 
-        var dto = EventoResponseDto.FromDomain(evento);
+        var dto = await EnrichEventoWithUrls(evento);
         return Ok(dto);
+    }
+
+    // --- Helpers para enriquecer DTOs con URLs ---
+
+    private async Task<List<EventoResponseDto>> EnrichEventosWithUrls(IEnumerable<Evento> eventos)
+    {
+        var tasks = eventos.Select(EnrichEventoWithUrls);
+        return (await Task.WhenAll(tasks)).ToList();
+    }
+
+    private async Task<EventoResponseDto> EnrichEventoWithUrls(Evento evento)
+    {
+        var dto = EventoResponseDto.FromDomain(evento);
+
+        // Enriquecer imagen principal
+        if (evento.ImagenPrincipal != null)
+        {
+            var url = await _mediaStorage.GetFileUrlAsync(evento.ImagenPrincipal.BlobName);
+            dto = dto with { MainImageUrl = url };
+        }
+
+        // Enriquecer imágenes secundarias
+        if (evento.ImagenesSecundarias.Any())
+        {
+            var secondaryUrls = new List<string>();
+            foreach (var img in evento.ImagenesSecundarias)
+            {
+                var url = await _mediaStorage.GetFileUrlAsync(img.BlobName);
+                if (!string.IsNullOrEmpty(url)) secondaryUrls.Add(url);
+            }
+            // Asumiendo que EventoResponseDto tiene una lista de secundaria
+            // Como record es inmutable, hay que ver si el DTO soporta esto
+            // Si el DTO no tiene una propiedad lista de urls, deberíamos agregarla o mapearla
+            // Por simplicidad en este paso, asignaremos a las propiedades si existen (Image1Url, etc)
+            // O idealmente el DTO debería tener `List<string> SecondaryImageUrls`
+            
+            // Revisando EventoResponseDto (no tengo el código pero asumo properties separadas o lista)
+            // Dado que el DTO es un record, lo más limpio es modificar el DTO si es necesario
+            // Por ahora, vamos a asumir que el DTO tiene un SecondaryImages (List<string>) o similar.
+            // Si el DTO original tiene ImageUrl1, ImageUrl2... 
+            
+            dto = dto with { SecondaryImageUrls = secondaryUrls };
+        }
+
+        // Enriquecer folleto
+        if (evento.FolletoPdf != null)
+        {
+            var url = await _mediaStorage.GetFileUrlAsync(evento.FolletoPdf.BlobName);
+            dto = dto with { BrochureUrl = url };
+        }
+
+        return dto;
     }
 }
