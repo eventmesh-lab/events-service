@@ -158,7 +158,8 @@ namespace events_service.Infrastructure.Fallback
 
             public Evento ToDomain()
             {
-                var fecha = new FechaEvento(Fecha);
+                // Usar ReconstruirDesdePersistencia para permitir fechas pasadas al reconstruir desde fallback
+                var fecha = FechaEvento.ReconstruirDesdePersistencia(Fecha);
                 var duracion = new DuracionEvento(DuracionHoras, DuracionMinutos);
                 var secciones = Secciones.Select(s => s.ToDomain()).ToList();
                 var evento = Evento.Crear(Nombre, Descripcion, fecha, duracion, OrganizadorId, VenueId, Categoria, TarifaPublicacion, secciones);

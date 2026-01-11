@@ -14,6 +14,14 @@ namespace events_service.Domain.ValueObjects
         public DateTime Valor { get; }
 
         /// <summary>
+        /// Constructor privado para reconstrucción desde persistencia sin validación de fecha pasada.
+        /// </summary>
+        private FechaEvento(DateTime fecha, bool skipValidation)
+        {
+            Valor = fecha.Date;
+        }
+
+        /// <summary>
         /// Crea una nueva instancia de FechaEvento.
         /// </summary>
         /// <param name="fecha">Fecha del evento. Debe ser una fecha válida y no estar en el pasado.</param>
@@ -31,6 +39,21 @@ namespace events_service.Domain.ValueObjects
                 throw new ArgumentException("La fecha del evento debe ser hoy o en el futuro.", nameof(fecha));
 
             Valor = fechaDate;
+        }
+
+        /// <summary>
+        /// Reconstruye una instancia de FechaEvento desde persistencia sin validar que la fecha no esté en el pasado.
+        /// Este método debe usarse únicamente cuando se reconstruye un evento desde la base de datos.
+        /// </summary>
+        /// <param name="fecha">Fecha del evento desde persistencia.</param>
+        /// <returns>Instancia de FechaEvento sin validación de fecha pasada.</returns>
+        /// <exception cref="ArgumentNullException">Cuando la fecha es nula.</exception>
+        public static FechaEvento ReconstruirDesdePersistencia(DateTime? fecha)
+        {
+            if (fecha == null)
+                throw new ArgumentNullException(nameof(fecha), "La fecha no puede ser nula.");
+
+            return new FechaEvento(fecha.Value, skipValidation: true);
         }
 
         /// <summary>

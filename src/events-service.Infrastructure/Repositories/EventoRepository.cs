@@ -212,7 +212,8 @@ namespace events_service.Infrastructure.Repositories
         /// </summary>
         private Evento MapToDomain(EventoEntity entity)
         {
-            var fecha = new FechaEvento(entity.FechaInicio);
+            // Usar ReconstruirDesdePersistencia para permitir fechas pasadas al reconstruir desde BD
+            var fecha = FechaEvento.ReconstruirDesdePersistencia(entity.FechaInicio);
             var duracion = new DuracionEvento(entity.DuracionHoras, entity.DuracionMinutos);
             var estado = new EstadoEvento(entity.Estado);
 

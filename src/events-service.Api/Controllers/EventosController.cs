@@ -1,11 +1,7 @@
-using System.IO;
 using System.Linq;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using events_service.Application.Commands.CrearEvento;
-using events_service.Application.Commands.AdjuntarMedia;
 using events_service.Application.Commands.EditarEvento;
 using events_service.Application.Commands.FinalizarEvento;
 using events_service.Application.Commands.IniciarEvento;
@@ -13,7 +9,6 @@ using events_service.Application.Commands.PagarPublicacion;
 using events_service.Application.Commands.PublicarEvento;
 using events_service.Api.DTOs;
 using events_service.Domain.Ports;
-using events_service.Infrastructure.Storage;
 
 namespace events_service.Api.Controllers;
 
@@ -27,16 +22,14 @@ public class EventosController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly IEventoRepository _repository;
-    private readonly BlobStorageOptions _blobOptions;
 
     /// <summary>
     /// Inicializa una nueva instancia del controlador de eventos.
     /// </summary>
-    public EventosController(IMediator mediator, IEventoRepository repository, IOptions<BlobStorageOptions> blobOptions)
+    public EventosController(IMediator mediator, IEventoRepository repository)
     {
         _mediator = mediator;
         _repository = repository;
-        _blobOptions = blobOptions?.Value ?? throw new ArgumentNullException(nameof(blobOptions));
     }
 
     /// <summary>
@@ -163,7 +156,7 @@ public class EventosController : ControllerBase
     public async Task<IActionResult> ObtenerEventosPublicados()
     {
         var eventos = await _repository.GetPublicadosAsync();
-        var dtos = eventos.Select(EventoResponseDto.FromDomain).Select(EnrichMediaUrls).ToList();
+        var dtos = eventos.Select(EventoResponseDto.FromDomain).ToList();
         return Ok(dtos);
     }
 
@@ -177,7 +170,7 @@ public class EventosController : ControllerBase
     public async Task<IActionResult> ObtenerTodosEventos()
     {
         var eventos = await _repository.GetAllAsync();
-        var dtos = eventos.Select(EventoResponseDto.FromDomain).Select(EnrichMediaUrls).ToList();
+        var dtos = eventos.Select(EventoResponseDto.FromDomain).ToList();
         return Ok(dtos);
     }
 
@@ -192,7 +185,7 @@ public class EventosController : ControllerBase
     public async Task<IActionResult> ObtenerEventosPorOrganizador(Guid organizadorId)
     {
         var eventos = await _repository.GetByOrganizadorIdAsync(organizadorId);
-        var dtos = eventos.Select(EventoResponseDto.FromDomain).Select(EnrichMediaUrls).ToList();
+        var dtos = eventos.Select(EventoResponseDto.FromDomain).ToList();
         return Ok(dtos);
     }
 
@@ -207,7 +200,7 @@ public class EventosController : ControllerBase
     public async Task<IActionResult> ObtenerEventosPorVenue(Guid venueId)
     {
         var eventos = await _repository.GetByVenueIdAsync(venueId);
-        var dtos = eventos.Select(EventoResponseDto.FromDomain).Select(EnrichMediaUrls).ToList();
+        var dtos = eventos.Select(EventoResponseDto.FromDomain).ToList();
         return Ok(dtos);
     }
 
@@ -227,84 +220,7 @@ public class EventosController : ControllerBase
         if (evento == null)
             return NotFound();
 
-        var dto = EnrichMediaUrls(EventoResponseDto.FromDomain(evento));
+        var dto = EventoResponseDto.FromDomain(evento);
         return Ok(dto);
-    }
-
-    /// <summary>
-    /// Adjunta medios (imagen principal, imágenes secundarias y folleto) a un evento.
-    /// </summary>
-    [HttpPost("{id:guid}/media")]
-    [Consumes("multipart/form-data")]
-    [ProducesResponseType(typeof(AdjuntarMediaEventoResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> AdjuntarMedia(Guid id, [FromForm] EventoMediaUploadRequest request)
-    {
-        var comando = new AdjuntarMediaEventoCommand
-        {
-            EventoId = id
-        };
-
-        if (request.ImagenPrincipal != null)
-        {
-            comando.ImagenPrincipal = await Convertir(request.ImagenPrincipal);
-        }
-
-        if (request.ImagenesSecundarias?.Any() == true)
-        {
-            foreach (var img in request.ImagenesSecundarias)
-            {
-                comando.ImagenesSecundarias.Add(await Convertir(img));
-            }
-        }
-
-        if (request.FolletoPdf != null)
-        {
-            comando.FolletoPdf = await Convertir(request.FolletoPdf);
-        }
-
-        var resultado = await _mediator.Send(comando);
-        return Ok(resultado);
-    }
-
-    private static async Task<AdjuntarMediaEventoCommand.UploadFileDto> Convertir(IFormFile file)
-    {
-        await using var ms = new MemoryStream();
-        await file.CopyToAsync(ms);
-        return new AdjuntarMediaEventoCommand.UploadFileDto(file.FileName, file.ContentType ?? "application/octet-stream", ms.ToArray());
-    }
-
-    private EventoResponseDto EnrichMediaUrls(EventoResponseDto dto)
-    {
-        if (dto == null)
-        {
-            return dto!;
-        }
-
-        dto.ImagenPrincipalUrl = BuildUrl(dto.ImagenPrincipalBlob);
-        dto.ImagenesSecundariasUrls = dto.ImagenesSecundariasBlobs
-            .Select(BuildUrl)
-            .Where(u => u is not null)
-            .ToList()!;
-        dto.FolletoUrl = BuildUrl(dto.FolletoBlob);
-        return dto;
-    }
-
-    private string? BuildUrl(string? blobName)
-    {
-        if (string.IsNullOrWhiteSpace(blobName))
-        {
-            return null;
-        }
-
-        var baseUrl = _blobOptions.PublicBaseUrl?.TrimEnd('/');
-        if (string.IsNullOrWhiteSpace(baseUrl))
-        {
-            // Fallback al endpoint por defecto de Azurite con el contenedor configurado
-            baseUrl = $"http://localhost:10000/devstoreaccount1/{_blobOptions.Container.Trim('/')}";
-        }
-
-        return $"{baseUrl}/{blobName}";
     }
 }

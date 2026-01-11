@@ -49,11 +49,6 @@ dotnet test ./tests/events-service.Application.Tests/events-service.Application.
 dotnet test ./tests/events-service.Infrastructure.IntegrationTests/events-service.Infrastructure.IntegrationTests.csproj
 ```
 
-``` bash
-docker pull mcr.microsoft.com/azure-storage/azurite:latest
-
-```
-
 Otras notas útiles
 
 - La solución `events-service.sln` agrupa los proyectos; puedes abrirla en Visual Studio o VS Code (con extensiones C#).
