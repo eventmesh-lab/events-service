@@ -55,7 +55,7 @@ namespace eventsservice.Infrastructure.Migrations
                 table: "eventos",
                 type: "text",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "[]");
         }
 
         /// <inheritdoc />

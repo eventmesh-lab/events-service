@@ -43,13 +43,13 @@ namespace events_service.Infrastructure.Storage
         public Task<StoredBlob> UploadImageAsync(Guid eventoId, UploadFile file, bool esPrincipal, CancellationToken cancellationToken = default)
         {
             var prefix = esPrincipal ? "principal" : "secundarias";
-            var blobName = $"eventos/{eventoId}/{prefix}/{Guid.NewGuid()}-{Sanitize(file.FileName)}";
+            var blobName = Path.Combine("eventos", eventoId.ToString(), prefix, $"{Guid.NewGuid()}-{Sanitize(file.FileName)}").Replace(Path.DirectorySeparatorChar, '/');
             return UploadAsync(blobName, file, cancellationToken);
         }
 
         public Task<StoredBlob> UploadBrochureAsync(Guid eventoId, UploadFile file, CancellationToken cancellationToken = default)
         {
-            var blobName = $"eventos/{eventoId}/folleto/{Guid.NewGuid()}-{Sanitize(file.FileName)}";
+            var blobName = Path.Combine("eventos", eventoId.ToString(), "folleto", $"{Guid.NewGuid()}-{Sanitize(file.FileName)}").Replace(Path.DirectorySeparatorChar, '/');
             return UploadAsync(blobName, file, cancellationToken);
         }
 
@@ -67,12 +67,16 @@ namespace events_service.Infrastructure.Storage
 
         private static string Sanitize(string fileName)
         {
-            if (string.IsNullOrWhiteSpace(fileName))
+            // Use Path.GetFileName to strip any directory components or traversal patterns.
+            var safeName = Path.GetFileName(fileName);
+
+            if (string.IsNullOrWhiteSpace(safeName))
             {
                 return "file";
             }
 
-            return fileName.Replace("..", string.Empty).Replace(" ", "-");
+            // Preserve existing behavior of replacing spaces with hyphens.
+            return safeName.Replace(" ", "-");
         }
     }
 }
