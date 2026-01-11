@@ -8,6 +8,7 @@ using events_service.Domain.Ports;
 using events_service.Infrastructure.Messaging;
 using events_service.Infrastructure.Persistence;
 using events_service.Infrastructure.Repositories;
+using events_service.Infrastructure.Storage;
 
 namespace events_service.Api.Configuration;
 
@@ -43,6 +44,10 @@ public static class ServiceConfiguration
 
         // Registrar mensajería RabbitMQ
         services.AddRabbitMqMessaging(configuration);
+
+        // Configurar Firebase Storage (Almacenamiento de Blobs)
+        services.Configure<FirebaseStorageOptions>(configuration.GetSection("FirebaseStorage"));
+        services.AddSingleton<IEventMediaStorage, FirebaseEventMediaStorage>();
 
         // Configurar CORS para permitir peticiones desde el frontend
         services.AddCors(options =>

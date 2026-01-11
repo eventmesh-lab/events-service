@@ -33,6 +33,18 @@ services:
       timeout: 5s
       retries: 5
 
+  firebase-emulator:
+    image: spine3/firebase-emulator
+    container_name: events-firebase
+    environment:
+      # Iniciar solo Storage. Usamos un proyecto ID dummy 'eventmesh-local'
+      - ARGS=--project=eventmesh-local emulators:start --only storage --import=/opt/data --export-on-exit=/opt/data
+    ports:
+      - "4000:4000" # UI Emulator
+      - "9199:9199" # Storage Emulator
+    volumes:
+      - ./firebase_data:/opt/data
+
   api:
     build:
       context: .
@@ -49,9 +61,15 @@ services:
       - MessageBroker__Exchange=eventos.domain.events
       - MessageBroker__Username=guest
       - MessageBroker__Password=guest
+      # Configuración para Firebase Emulator
+      - STORAGE_EMULATOR_HOST=http://firebase-emulator:9199
+      - FirebaseStorage__ProjectId=eventmesh-local
+      - FirebaseStorage__BucketName=eventmesh-local.appspot.com
+      - FirebaseStorage__PublicBaseUrl=http://localhost:9199/v0/b/eventmesh-local.appspot.com/o
     depends_on:
       - postgres
       - rabbitmq
+      - firebase-emulator
 
 volumes:
   postgres_data:
