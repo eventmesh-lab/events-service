@@ -49,10 +49,6 @@ services:
       - MessageBroker__Exchange=eventos.domain.events
       - MessageBroker__Username=guest
       - MessageBroker__Password=guest
-      # Azurite dentro de la red de Compose
-      - BlobStorage__ConnectionString=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNoGV8X8kGq1p3RDYJ3CqgYh5hGd3clj3o==;BlobEndpoint=http://azurite:10000/devstoreaccount1
-      - BlobStorage__Container=eventos-media
-      - BlobStorage__PublicBaseUrl=http://azurite:10000/devstoreaccount1/eventos-media
     depends_on:
       - postgres
       - rabbitmq
@@ -70,4 +66,3 @@ services:
 volumes:
   postgres_data:
   rabbitmq_data:
-  azurite_data:
