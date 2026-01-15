@@ -100,3 +100,22 @@ docker-compose up --build --force-recreate -d
 ```
 
 Nota: evita ejecutar comandos que eliminen todos los contenedores o imágenes de la máquina (por ejemplo, `docker rm -f $(docker ps -aq)`), ya que son destructivos a nivel global.
+
+**Migración / script de reinicio**
+
+Si prefieres un paso tipo "migración" que deje el servicio en un estado limpio y reproducible, hay scripts listos en `scripts/` que automatizan los pasos anteriores (disponibles para Bash y PowerShell).
+
+- `scripts/reset-environment.sh` — script Bash (Linux/macOS/WSL/Git Bash)
+- `scripts/reset-environment.ps1` — script PowerShell (Windows)
+
+Ejecuta el script desde la raíz del servicio:
+
+```bash
+# Bash
+./scripts/reset-environment.sh
+
+# PowerShell
+./scripts/reset-environment.ps1
+```
+
+Los scripts realizan las mismas acciones descritas arriba: actualizan el repo, detienen y eliminan recursos de Compose para el servicio, hacen prune seguro y vuelven a bajar/reconstruir las imágenes. Son diseñados para no ejecutar comandos globalmente destructivos.
