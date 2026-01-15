@@ -60,3 +60,43 @@ Contribuciones y seguimiento
 
 - Si encuentras errores en la documentación, mejora `docs/*.md` y crea un PR claro que describa el cambio.
 - Si vas a añadir una feature o cambiar la arquitectura, abre un issue primero y referencia los documentos en `docs/`.
+
+**Limpieza y reinicio de Docker (no destructivo)**
+
+Sigue estos pasos desde la carpeta del servicio (por ejemplo, `Services/events-service`) para dejar el entorno como si fuese la primera vez, sin comandos globalmente destructivos.
+
+1) Actualizar el repositorio y limpiar archivos no rastreados:
+```bash
+git fetch --all
+git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)
+git clean -fdx
+```
+
+2) Parar y eliminar recursos de `docker-compose` (ejecutar desde la carpeta con `docker-compose.yml`):
+```bash
+# Compose V2
+docker compose down --rmi all --volumes --remove-orphans
+
+# Alternativa legacy
+docker-compose down --rmi all --volumes --remove-orphans
+```
+
+3) Limpiar recursos de Docker (prune, no forzar eliminación masiva global):
+```bash
+docker image prune -a -f
+docker volume prune -f
+docker network prune -f
+docker builder prune -a -f
+```
+
+4) Forzar pull de imágenes y levantar/reconstruir desde la carpeta con `docker-compose.yml`:
+```bash
+docker compose pull
+docker compose up --build --force-recreate --pull always --renew-anon-volumes -d
+
+# Con docker-compose (legacy)
+docker-compose pull
+docker-compose up --build --force-recreate -d
+```
+
+Nota: evita ejecutar comandos que eliminen todos los contenedores o imágenes de la máquina (por ejemplo, `docker rm -f $(docker ps -aq)`), ya que son destructivos a nivel global.
