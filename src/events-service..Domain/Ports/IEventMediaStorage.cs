@@ -41,4 +41,9 @@ public interface IEventMediaStorage
     /// Obtiene la URL pública o firmada de un archivo almacenado.
     /// </summary>
     Task<string> GetFileUrlAsync(string blobName, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Elimina todos los archivos asociados a un evento.
+    /// </summary>
+    Task DeleteAllFilesAsync(Guid eventoId, CancellationToken cancellationToken = default);
 }

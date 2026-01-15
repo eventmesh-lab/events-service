@@ -111,6 +111,16 @@ namespace events_service.Infrastructure.Persistence
         public string? FolletoContentType { get; set; }
 
         public long? FolletoSizeBytes { get; set; }
+
+        // Nuevos campos para cancelación y reprogramación
+        public string? MotivoCancelacion { get; set; }
+        public DateTime? FechaCancelacion { get; set; }
+        public string? CanceladoPor { get; set; }
+        public DateTime? FechaInicioOriginal { get; set; }
+        public DateTime? FechaFinOriginal { get; set; }
+        public int ContadorReprogramaciones { get; set; }
+        public DateTime? UltimaReprogramacionFecha { get; set; }
+        public string? UltimaReprogramacionPor { get; set; }
     }
 }
 

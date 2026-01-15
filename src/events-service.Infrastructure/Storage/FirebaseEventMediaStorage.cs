@@ -99,6 +99,28 @@ public class FirebaseEventMediaStorage : IEventMediaStorage
         return await UploadBlobAsync(blobName, file, cancellationToken);
     }
 
+    public async Task DeleteAllFilesAsync(Guid eventoId, CancellationToken cancellationToken = default)
+    {
+        var prefix = $"eventos/{eventoId}/";
+        _logger.LogInformation("Deleting all files for event {EventoId} with prefix {Prefix}", eventoId, prefix);
+
+        try
+        {
+            var blobs = _storageClient.ListObjectsAsync(_bucketName, prefix);
+            await foreach (var blob in blobs)
+            {
+                if (cancellationToken.IsCancellationRequested) break;
+                _logger.LogDebug("Deleting blob: {BlobName}", blob.Name);
+                await _storageClient.DeleteObjectAsync(_bucketName, blob.Name, cancellationToken: cancellationToken);
+            }
+            _logger.LogInformation("All files for event {EventoId} deleted successfully.", eventoId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting files for event {EventoId}", eventoId);
+        }
+    }
+
     public async Task<string> GetFileUrlAsync(string blobName, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(blobName)) return string.Empty;

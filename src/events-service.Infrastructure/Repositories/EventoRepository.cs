@@ -104,6 +104,16 @@ namespace events_service.Infrastructure.Repositories
             entity.FolletoContentType = evento.FolletoPdf?.ContentType;
             entity.FolletoSizeBytes = evento.FolletoPdf?.SizeBytes;
 
+            // Actualizar campos de cancelación y reprogramación
+            entity.MotivoCancelacion = evento.MotivoCancelacion;
+            entity.FechaCancelacion = evento.FechaCancelacion;
+            entity.CanceladoPor = evento.CanceladoPor;
+            entity.FechaInicioOriginal = evento.FechaInicioOriginal;
+            entity.FechaFinOriginal = evento.FechaFinOriginal;
+            entity.ContadorReprogramaciones = evento.ContadorReprogramaciones;
+            entity.UltimaReprogramacionFecha = evento.UltimaReprogramacionFecha;
+            entity.UltimaReprogramacionPor = evento.UltimaReprogramacionPor;
+
             // Actualizar secciones (eliminar las que ya no existen y agregar nuevas)
             var seccionesExistentes = entity.Secciones.ToList();
             var seccionesDominio = evento.Secciones.ToList();
@@ -144,6 +154,27 @@ namespace events_service.Infrastructure.Repositories
             }
 
             await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Elimina físicamente un evento del repositorio.
+        /// </summary>
+        /// <param name="evento">Evento a eliminar.</param>
+        /// <param name="cancellationToken">Token de cancelación.</param>
+        public async Task DeleteAsync(Evento evento, CancellationToken cancellationToken = default)
+        {
+            if (evento == null)
+                throw new ArgumentNullException(nameof(evento));
+
+            var entity = await _context.Eventos
+                .Include(e => e.Secciones)
+                .FirstOrDefaultAsync(e => e.Id == evento.Id, cancellationToken);
+
+            if (entity != null)
+            {
+                _context.Eventos.Remove(entity);
+                await _context.SaveChangesAsync(cancellationToken);
+            }
         }
 
         /// <summary>
@@ -241,6 +272,15 @@ namespace events_service.Infrastructure.Repositories
             SetPrivateProperty(evento, nameof(Evento.FechaCreacion), entity.FechaCreacion);
             SetPrivateProperty(evento, nameof(Evento.FechaPublicacion), entity.FechaPublicacion);
 
+            SetPrivateProperty(evento, nameof(Evento.MotivoCancelacion), entity.MotivoCancelacion);
+            SetPrivateProperty(evento, nameof(Evento.FechaCancelacion), entity.FechaCancelacion);
+            SetPrivateProperty(evento, nameof(Evento.CanceladoPor), entity.CanceladoPor);
+            SetPrivateProperty(evento, nameof(Evento.FechaInicioOriginal), entity.FechaInicioOriginal);
+            SetPrivateProperty(evento, nameof(Evento.FechaFinOriginal), entity.FechaFinOriginal);
+            SetPrivateProperty(evento, nameof(Evento.ContadorReprogramaciones), entity.ContadorReprogramaciones);
+            SetPrivateProperty(evento, nameof(Evento.UltimaReprogramacionFecha), entity.UltimaReprogramacionFecha);
+            SetPrivateProperty(evento, nameof(Evento.UltimaReprogramacionPor), entity.UltimaReprogramacionPor);
+
             var principal = CrearMediaDesdeEntity(entity.ImagenPrincipalBlobName, entity.ImagenPrincipalContentType, entity.ImagenPrincipalSizeBytes, esImagen: true);
             var folleto = CrearMediaDesdeEntity(entity.FolletoBlobName, entity.FolletoContentType, entity.FolletoSizeBytes, esImagen: false);
             var secundarias = DeserializarSecundarias(entity.ImagenesSecundariasJson);
@@ -285,7 +325,15 @@ namespace events_service.Infrastructure.Repositories
                 ImagenesSecundariasJson = SerializarSecundarias(evento.ImagenesSecundarias),
                 FolletoBlobName = evento.FolletoPdf?.BlobName,
                 FolletoContentType = evento.FolletoPdf?.ContentType,
-                FolletoSizeBytes = evento.FolletoPdf?.SizeBytes
+                FolletoSizeBytes = evento.FolletoPdf?.SizeBytes,
+                MotivoCancelacion = evento.MotivoCancelacion,
+                FechaCancelacion = evento.FechaCancelacion,
+                CanceladoPor = evento.CanceladoPor,
+                FechaInicioOriginal = evento.FechaInicioOriginal,
+                FechaFinOriginal = evento.FechaFinOriginal,
+                ContadorReprogramaciones = evento.ContadorReprogramaciones,
+                UltimaReprogramacionFecha = evento.UltimaReprogramacionFecha,
+                UltimaReprogramacionPor = evento.UltimaReprogramacionPor
             };
         }
 

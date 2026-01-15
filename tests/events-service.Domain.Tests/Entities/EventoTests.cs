@@ -212,13 +212,44 @@ namespace events_service.Domain.Tests.Entities
             evento.ClearDomainEvents();
 
             // Act
-            evento.Cancelar("Motivo");
+            evento.Cancelar("Motivo", "User123", DateTime.UtcNow);
 
             // Assert
             Assert.True(evento.Estado.EsCancelado);
+            Assert.Equal("Motivo", evento.MotivoCancelacion);
+            Assert.Equal("User123", evento.CanceladoPor);
             var domainEvents = evento.GetDomainEvents();
             Assert.Single(domainEvents);
             Assert.IsType<EventoCancelado>(domainEvents.First());
+        }
+
+        [Fact]
+        public void Reprogramar_EventoPublicado_ActualizaFechasYContador()
+        {
+            // Arrange
+            var evento = CrearEventoBorrador();
+            var transaccion = Guid.NewGuid();
+            evento.PagarPublicacion(transaccion, Tarifa);
+            evento.Publicar(transaccion, DateTime.Now);
+            evento.ClearDomainEvents();
+            
+            var nuevaFecha = new FechaEvento(DateTime.Now.AddDays(15));
+            var nuevaDuracion = new DuracionEvento(3, 0);
+            var ahora = DateTime.UtcNow;
+
+            // Act
+            evento.Reprogramar(nuevaFecha, nuevaDuracion, "Editor1", ahora);
+
+            // Assert
+            Assert.Equal(nuevaFecha, evento.Fecha);
+            Assert.Equal(nuevaDuracion, evento.Duracion);
+            Assert.Equal(1, evento.ContadorReprogramaciones);
+            Assert.Equal(ahora, evento.UltimaReprogramacionFecha);
+            Assert.Equal("Editor1", evento.UltimaReprogramacionPor);
+            
+            var domainEvents = evento.GetDomainEvents();
+            Assert.Single(domainEvents);
+            Assert.IsType<EventoReprogramado>(domainEvents.First());
         }
 
         [Fact]
@@ -232,7 +263,7 @@ namespace events_service.Domain.Tests.Entities
             evento.Iniciar(evento.Fecha.Valor);
 
             // Act & Assert
-            Assert.Throws<InvalidOperationException>(() => evento.Cancelar("Motivo"));
+            Assert.Throws<InvalidOperationException>(() => evento.Cancelar("Motivo", "User1", DateTime.UtcNow));
         }
 
         #endregion

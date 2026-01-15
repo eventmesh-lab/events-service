@@ -10,6 +10,9 @@ using events_service.Application.Commands.PublicarEvento;
 using events_service.Application.Commands.SubirImagenPrincipal;
 using events_service.Application.Commands.SubirImagenSecundaria;
 using events_service.Application.Commands.SubirFolleto;
+using events_service.Application.Commands.CancelarEvento;
+using events_service.Application.Commands.EliminarEvento;
+using events_service.Application.Commands.ReprogramarEvento;
 using events_service.Api.DTOs;
 using events_service.Domain.Ports;
 using events_service.Domain.Entities;
@@ -149,6 +152,62 @@ public class EventosController : ControllerBase
     {
         var command = new FinalizarEventoCommand { EventoId = id };
         await _mediator.Send(command);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Cancela un evento que tiene inscripciones.
+    /// </summary>
+    /// <param name="id">Identificador único del evento.</param>
+    /// <param name="command">Datos de la cancelación.</param>
+    /// <response code="200">Evento cancelado exitosamente.</response>
+    /// <response code="400">Evento no tiene inscripciones o estado inválido.</response>
+    /// <response code="404">Evento no encontrado.</response>
+    [HttpPost("{id:guid}/cancel")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CancelarEvento(Guid id, [FromBody] CancelarEventoCommand command)
+    {
+        var enrichedCommand = command with { EventoId = id };
+        await _mediator.Send(enrichedCommand);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Elimina físicamente un evento que NO tiene inscripciones.
+    /// </summary>
+    /// <param name="id">Identificador único del evento.</param>
+    /// <response code="204">Evento eliminado exitosamente.</response>
+    /// <response code="400">Evento tiene inscripciones activas.</response>
+    /// <response code="404">Evento no encontrado.</response>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> EliminarEvento(Guid id)
+    {
+        var command = new EliminarEventoCommand(id);
+        await _mediator.Send(command);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Reprograma las fechas de un evento publicado.
+    /// </summary>
+    /// <param name="id">Identificador único del evento.</param>
+    /// <param name="command">Nuevos datos de fecha y duración.</param>
+    /// <response code="200">Evento reprogramado exitosamente.</response>
+    /// <response code="400">Datos inválidos, fecha no futura o evento no publicado.</response>
+    /// <response code="404">Evento no encontrado.</response>
+    [HttpPost("{id:guid}/reprogramar")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ReprogramarEvento(Guid id, [FromBody] ReprogramarEventoCommand command)
+    {
+        var enrichedCommand = command with { EventoId = id };
+        await _mediator.Send(enrichedCommand);
         return Ok();
     }
 
