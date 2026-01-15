@@ -121,6 +121,18 @@ namespace events_service.Api.DTOs
         /// </summary>
         public string? BrochureUrl { get; init; }
 
+        // Nuevas propiedades para cancelación
+        public string? MotivoCancelacion { get; init; }
+        public DateTime? FechaCancelacion { get; init; }
+        public string? CanceladoPor { get; init; }
+
+        // Nuevas propiedades para reprogramación
+        public DateTime? FechaInicioOriginal { get; init; }
+        public DateTime? FechaFinOriginal { get; init; }
+        public int ContadorReprogramaciones { get; init; }
+        public DateTime? UltimaReprogramacionFecha { get; init; }
+        public string? UltimaReprogramacionPor { get; init; }
+
         /// <summary>
         /// Mapea un agregado de dominio Evento a un DTO de respuesta.
         /// </summary>
@@ -149,7 +161,15 @@ namespace events_service.Api.DTOs
                 Secciones = evento.Secciones.Select(s => SeccionResponseDto.FromDomain(s)).ToList(),
                 ImagenPrincipalBlob = evento.ImagenPrincipal?.BlobName,
                 ImagenesSecundariasBlobs = evento.ImagenesSecundarias.Select(i => i.BlobName).ToList(),
-                FolletoBlob = evento.FolletoPdf?.BlobName
+                FolletoBlob = evento.FolletoPdf?.BlobName,
+                MotivoCancelacion = evento.MotivoCancelacion,
+                FechaCancelacion = evento.FechaCancelacion,
+                CanceladoPor = evento.CanceladoPor,
+                FechaInicioOriginal = evento.FechaInicioOriginal,
+                FechaFinOriginal = evento.FechaFinOriginal,
+                ContadorReprogramaciones = evento.ContadorReprogramaciones,
+                UltimaReprogramacionFecha = evento.UltimaReprogramacionFecha,
+                UltimaReprogramacionPor = evento.UltimaReprogramacionPor
             };
         }
     }

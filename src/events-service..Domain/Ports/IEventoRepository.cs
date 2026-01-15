@@ -37,6 +37,14 @@ namespace events_service.Domain.Ports
         Task UpdateAsync(Evento evento, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Elimina físicamente un evento del repositorio.
+        /// </summary>
+        /// <param name="evento">Evento a eliminar.</param>
+        /// <param name="cancellationToken">Token de cancelación.</param>
+        /// <returns>Tarea que representa la operación asíncrona.</returns>
+        Task DeleteAsync(Evento evento, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Obtiene todos los eventos en estado "Publicado".
         /// </summary>
         /// <param name="cancellationToken">Token de cancelación.</param>

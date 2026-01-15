@@ -66,6 +66,13 @@ namespace events_service.Infrastructure.Repositories
             }
         }
 
+        public async Task DeleteAsync(Evento evento, CancellationToken cancellationToken = default)
+        {
+            // La eliminación física se intenta solo en el repositorio primario.
+            // Si falla el primario por problemas transitorios, se asume que no se puede realizar la operación real.
+            await _primary.DeleteAsync(evento, cancellationToken);
+        }
+
         /// <summary>
         /// Obtiene todos los eventos en estado "Publicado".
         /// </summary>

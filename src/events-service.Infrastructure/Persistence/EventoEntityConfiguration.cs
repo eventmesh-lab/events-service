@@ -111,6 +111,34 @@ namespace events_service.Infrastructure.Persistence
             builder.Property(e => e.FolletoSizeBytes)
                 .HasColumnName("folleto_size_bytes");
 
+            builder.Property(e => e.MotivoCancelacion)
+                .HasColumnName("motivo_cancelacion")
+                .HasColumnType("text");
+
+            builder.Property(e => e.FechaCancelacion)
+                .HasColumnName("fecha_cancelacion");
+
+            builder.Property(e => e.CanceladoPor)
+                .HasColumnName("cancelado_por")
+                .HasMaxLength(100);
+
+            builder.Property(e => e.FechaInicioOriginal)
+                .HasColumnName("fecha_inicio_original");
+
+            builder.Property(e => e.FechaFinOriginal)
+                .HasColumnName("fecha_fin_original");
+
+            builder.Property(e => e.ContadorReprogramaciones)
+                .HasColumnName("contador_reprogramaciones")
+                .HasDefaultValue(0);
+
+            builder.Property(e => e.UltimaReprogramacionFecha)
+                .HasColumnName("ultima_reprogramacion_fecha");
+
+            builder.Property(e => e.UltimaReprogramacionPor)
+                .HasColumnName("ultima_reprogramacion_por")
+                .HasMaxLength(100);
+
             // Relación uno a muchos con Secciones
             builder.HasMany(e => e.Secciones)
                 .WithOne(s => s.Evento)

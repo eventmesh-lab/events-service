@@ -9,6 +9,7 @@ using events_service.Infrastructure.Messaging;
 using events_service.Infrastructure.Persistence;
 using events_service.Infrastructure.Repositories;
 using events_service.Infrastructure.Storage;
+using events_service.Infrastructure.ExternalServices;
 
 namespace events_service.Api.Configuration;
 
@@ -48,6 +49,12 @@ public static class ServiceConfiguration
         // Configurar Firebase Storage (Almacenamiento de Blobs)
         services.Configure<FirebaseStorageOptions>(configuration.GetSection("FirebaseStorage"));
         services.AddSingleton<IEventMediaStorage, FirebaseEventMediaStorage>();
+
+        // Registrar clientes de servicios externos
+        services.AddHttpClient<IRegistrationClient, RegistrationServiceClient>(client =>
+        {
+            client.BaseAddress = new Uri(configuration["ExternalServices:RegistrationServiceUrl"] ?? "http://registration-service");
+        });
 
         // Configurar CORS para permitir peticiones desde el frontend
         services.AddCors(options =>

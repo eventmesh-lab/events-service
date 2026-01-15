@@ -31,6 +31,18 @@ namespace events_service.Domain.Entities
         public DateTime? FechaPublicacion { get; private set; }
         public int Version { get; private set; }
 
+        // Propiedades para cancelación
+        public string? MotivoCancelacion { get; private set; }
+        public DateTime? FechaCancelacion { get; private set; }
+        public string? CanceladoPor { get; private set; }
+
+        // Propiedades para reprogramación
+        public DateTime? FechaInicioOriginal { get; private set; }
+        public DateTime? FechaFinOriginal { get; private set; }
+        public int ContadorReprogramaciones { get; private set; }
+        public DateTime? UltimaReprogramacionFecha { get; private set; }
+        public string? UltimaReprogramacionPor { get; private set; }
+
         public MediaAsset? ImagenPrincipal { get; private set; }
         public IReadOnlyCollection<MediaAsset> ImagenesSecundarias => _imagenesSecundarias.AsReadOnly();
         public MediaAsset? FolletoPdf { get; private set; }
@@ -277,7 +289,7 @@ namespace events_service.Domain.Entities
             RegistrarEvento(new EventoFinalizado(Id, fechaActual));
         }
 
-        public void Cancelar(string motivo)
+        public void Cancelar(string motivo, string canceladoPor, DateTime fechaActual)
         {
             if (Estado.EsFinalizado)
             {
@@ -291,14 +303,68 @@ namespace events_service.Domain.Entities
 
             if (string.IsNullOrWhiteSpace(motivo))
             {
-                motivo = "Sin motivo declarado";
+                throw new ArgumentException("El motivo de cancelación es requerido.", nameof(motivo));
+            }
+
+            if (string.IsNullOrWhiteSpace(canceladoPor))
+            {
+                throw new ArgumentException("El usuario que cancela es requerido.", nameof(canceladoPor));
             }
 
             Estado = new EstadoEvento("Cancelado");
+            MotivoCancelacion = motivo;
+            FechaCancelacion = fechaActual;
+            CanceladoPor = canceladoPor;
             TransaccionPagoId = null;
             IncrementarVersion();
 
             RegistrarEvento(new EventoCancelado(Id, motivo));
+        }
+
+        public void Reprogramar(FechaEvento nuevaFecha, DuracionEvento nuevaDuracion, string reprogramadoPor, DateTime fechaActual)
+        {
+            if (!Estado.EsPublicado)
+            {
+                throw new InvalidOperationException("Solo eventos publicados pueden ser reprogramados.");
+            }
+
+            if (nuevaFecha is null)
+            {
+                throw new ArgumentNullException(nameof(nuevaFecha));
+            }
+
+            if (nuevaDuracion is null)
+            {
+                throw new ArgumentNullException(nameof(nuevaDuracion));
+            }
+
+            if (string.IsNullOrWhiteSpace(reprogramadoPor))
+            {
+                throw new ArgumentException("El usuario que reprograma es requerido.", nameof(reprogramadoPor));
+            }
+
+            if (nuevaFecha.Valor <= fechaActual)
+            {
+                throw new InvalidOperationException("La nueva fecha debe ser futura.");
+            }
+
+            // Respaldar fechas originales si es la primera vez
+            if (ContadorReprogramaciones == 0)
+            {
+                FechaInicioOriginal = Fecha.Valor;
+                // Asumiendo que podemos calcular la fecha fin basada en duración
+                FechaFinOriginal = Fecha.Valor.AddHours(Duracion.Horas).AddMinutes(Duracion.Minutos);
+            }
+
+            Fecha = nuevaFecha;
+            Duracion = nuevaDuracion;
+            ContadorReprogramaciones++;
+            UltimaReprogramacionFecha = fechaActual;
+            UltimaReprogramacionPor = reprogramadoPor;
+            
+            IncrementarVersion();
+
+            RegistrarEvento(new EventoReprogramado(Id, Fecha.Valor, reprogramadoPor, fechaActual));
         }
 
         /// <summary>
