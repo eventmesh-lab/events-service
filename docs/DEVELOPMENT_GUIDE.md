@@ -83,12 +83,16 @@ services:
       - "15672:15672"
 ```
 
-### 3.4 Migraciones (cuando se incorpore EF Core)
+### 3.4 Migraciones (automatizadas y manuales)
+
+El servicio ejecuta `DbContext.Database.Migrate()` durante el arranque, de modo que al construir la imagen y levantar el contenedor se aplican automáticamente las migraciones pendientes siempre que la base de datos esté accesible. Para desarrollos locales o si necesitas revisar una migración concreta (por ejemplo al añadir columnas nuevas), puedes seguir usando el comando CLI:
 
 ```bash
 cd Services/events-service
 dotnet ef database update --project src/events-service.Infrastructure --startup-project src/events-service.Api
 ```
+
+Para revertir a un punto anterior utiliza la misma combinación, indicando el nombre de la migración previa (`<PreviousMigrationName>`), como se documenta en `src/events-service.Infrastructure/Migrations/README_AddCancellationAndReschedulingFields.md`.
 
 ## 4. Ejecución
 

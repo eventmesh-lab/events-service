@@ -1,4 +1,8 @@
 using events_service.Api.Configuration;
+using events_service.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,7 +24,26 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Ejecutar migraciones automáticamente durante el arranque
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        logger.LogInformation("Aplicando migraciones de base de datos...");
+        var context = services.GetRequiredService<EventsDbContext>();
+        await context.Database.MigrateAsync();
+        logger.LogInformation("Migraciones aplicadas correctamente.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogCritical(ex, "Error al aplicar las migraciones de la base de datos.");
+        throw;
+    }
+}
+
 // Configurar pipeline HTTP
 app.ConfigureMiddleware();
 
-app.Run();
+await app.RunAsync();
