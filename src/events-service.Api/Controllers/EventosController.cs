@@ -30,15 +30,17 @@ public class EventosController : ControllerBase
     private readonly IMediator _mediator;
     private readonly IEventoRepository _repository;
     private readonly IEventMediaStorage _mediaStorage;
+    private readonly IRegistrationClient _registrationClient;
 
     /// <summary>
     /// Inicializa una nueva instancia del controlador de eventos.
     /// </summary>
-    public EventosController(IMediator mediator, IEventoRepository repository, IEventMediaStorage mediaStorage)
+    public EventosController(IMediator mediator, IEventoRepository repository, IEventMediaStorage mediaStorage, IRegistrationClient registrationClient)
     {
         _mediator = mediator;
         _repository = repository;
         _mediaStorage = mediaStorage;
+        _registrationClient = registrationClient;
     }
 
     /// <summary>
@@ -370,6 +372,30 @@ public class EventosController : ControllerBase
     {
         var dto = EventoResponseDto.FromDomain(evento);
 
+        // Enriquecer registro count
+        int registrationsCount = 0;
+        try {
+            registrationsCount = await _registrationClient.GetRegistrationCountAsync(evento.Id);
+        } catch { /* Ignorar errores de servicio externo */ }
+
+        // Cálculos para UI
+        var now = DateTime.UtcNow;
+        var cancellationDeadline = evento.Fecha.Valor.AddHours(-48);
+        
+        bool isPublished = evento.Estado.EsPublicado;
+        bool isPaid = evento.TransaccionPagoId.HasValue;
+
+        // Reglas de negocio para UI
+        bool canBeDeleted = !isPublished || (isPublished && !isPaid);
+        bool canBeCancelled = isPublished && isPaid && now <= cancellationDeadline;
+
+        dto = dto with { 
+            InscripcionesCount = registrationsCount,
+            CanBeDeleted = canBeDeleted,
+            CanBeCancelled = canBeCancelled,
+            CancellationDeadline = cancellationDeadline
+        };
+
         // Enriquecer imagen principal
         if (evento.ImagenPrincipal != null)
         {
@@ -386,17 +412,6 @@ public class EventosController : ControllerBase
                 var url = await _mediaStorage.GetFileUrlAsync(img.BlobName);
                 if (!string.IsNullOrEmpty(url)) secondaryUrls.Add(url);
             }
-            // Asumiendo que EventoResponseDto tiene una lista de secundaria
-            // Como record es inmutable, hay que ver si el DTO soporta esto
-            // Si el DTO no tiene una propiedad lista de urls, deberíamos agregarla o mapearla
-            // Por simplicidad en este paso, asignaremos a las propiedades si existen (Image1Url, etc)
-            // O idealmente el DTO debería tener `List<string> SecondaryImageUrls`
-            
-            // Revisando EventoResponseDto (no tengo el código pero asumo properties separadas o lista)
-            // Dado que el DTO es un record, lo más limpio es modificar el DTO si es necesario
-            // Por ahora, vamos a asumir que el DTO tiene un SecondaryImages (List<string>) o similar.
-            // Si el DTO original tiene ImageUrl1, ImageUrl2... 
-            
             dto = dto with { SecondaryImageUrls = secondaryUrls };
         }
 
