@@ -133,6 +133,12 @@ namespace events_service.Api.DTOs
         public DateTime? UltimaReprogramacionFecha { get; init; }
         public string? UltimaReprogramacionPor { get; init; }
 
+        // Propiedades calculadas o externas para UI
+        public int InscripcionesCount { get; init; }
+        public bool CanBeDeleted { get; init; }
+        public bool CanBeCancelled { get; init; }
+        public DateTime? CancellationDeadline { get; init; }
+
         /// <summary>
         /// Mapea un agregado de dominio Evento a un DTO de respuesta.
         /// </summary>
